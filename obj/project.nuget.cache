@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "dgSpecHash": "Cp1MQ1SlXps=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\ladmin\\Documents\\C projects\\ADManager\\ADManager.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ladmin\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.27\\microsoft.net.illink.tasks.8.0.27.nupkg.sha512",
+    "C:\\Users\\ladmin\\.nuget\\packages\\system.configuration.configurationmanager\\8.0.0\\system.configuration.configurationmanager.8.0.0.nupkg.sha512",
+    "C:\\Users\\ladmin\\.nuget\\packages\\system.diagnostics.eventlog\\8.0.0\\system.diagnostics.eventlog.8.0.0.nupkg.sha512",
+    "C:\\Users\\ladmin\\.nuget\\packages\\system.directoryservices\\8.0.0\\system.directoryservices.8.0.0.nupkg.sha512",
+    "C:\\Users\\ladmin\\.nuget\\packages\\system.directoryservices.accountmanagement\\8.0.0\\system.directoryservices.accountmanagement.8.0.0.nupkg.sha512",
+    "C:\\Users\\ladmin\\.nuget\\packages\\system.directoryservices.protocols\\8.0.0\\system.directoryservices.protocols.8.0.0.nupkg.sha512",
+    "C:\\Users\\ladmin\\.nuget\\packages\\system.security.cryptography.protecteddata\\8.0.0\\system.security.cryptography.protecteddata.8.0.0.nupkg.sha512",
+    "C:\\Users\\ladmin\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.27\\microsoft.netcore.app.runtime.win-x64.8.0.27.nupkg.sha512",
+    "C:\\Users\\ladmin\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.27\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.27.nupkg.sha512",
+    "C:\\Users\\ladmin\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.27\\microsoft.aspnetcore.app.runtime.win-x64.8.0.27.nupkg.sha512"
+  ],
+  "logs": []
+}
