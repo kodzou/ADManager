@@ -86,6 +86,15 @@ public static class Tab1_UserSearch
         };
         btnSearch.Click += (_, _) => DoSearch(txtSn.Text.Trim(), txtGn.Text.Trim());
 
+        KeyEventHandler searchOnEnter = (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            DoSearch(txtSn.Text.Trim(), txtGn.Text.Trim());
+        };
+        txtSn.KeyDown += searchOnEnter;
+        txtGn.KeyDown += searchOnEnter;
+
         _btnUnlock.Click += (_, _) => DoUnlock();
         _btnChangePwd.Click += (_, _) =>
         {

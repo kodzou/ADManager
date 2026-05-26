@@ -6,9 +6,9 @@ namespace ADManager.Tabs;
 
 public static class Tab3_Passwords
 {
-    private static DataGridView? _grid;
-    private static RadioButton?  _rdExpired;
-    private static RadioButton?  _rdExpireSoon;
+    private static DataGridView?  _grid;
+    private static RadioButton?   _rdExpired;
+    private static RadioButton?   _rdExpireSoon;
     private static NumericUpDown? _numDays;
 
     public static TabPage Create()
@@ -70,6 +70,28 @@ public static class Tab3_Passwords
         _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
         _grid.KeyDown += UiFactory.GridCopyHandler;
 
+        // Форматирование ячеек: DateTime → "dd.MM.yyyy HH:mm", TimeSpan → читаемый текст
+        _grid.CellFormatting += (_, e) =>
+        {
+            if (e.Value is DateTime dt)
+            {
+                e.Value             = dt.ToString("dd.MM.yyyy HH:mm");
+                e.FormattingApplied = true;
+            }
+            else if (e.Value is TimeSpan ts)
+            {
+                e.Value = ts.TotalSeconds >= 0
+                    ? $"Через {(int)ts.TotalDays} дн. {ts.Hours} ч."
+                    : $"Истёк {(int)Math.Abs(ts.TotalDays)} дн. {Math.Abs(ts.Hours)} ч. назад";
+                e.FormattingApplied = true;
+            }
+            else if (e.Value is DBNull || e.Value == null)
+            {
+                e.Value             = "";
+                e.FormattingApplied = true;
+            }
+        };
+
         tab.Controls.AddRange(new Control[] { pan, _grid });
         return tab;
     }
@@ -78,12 +100,12 @@ public static class Tab3_Passwords
     {
         Logger.Write("Поиск пользователей по паролям...", LogType.Info);
 
-        var now    = DateTime.Now;
-        var props  = new[] { "sAMAccountName", "displayName", "userAccountControl", "msDS-UserPasswordExpiryTimeComputed", "pwdLastSet" };
+        var    now    = DateTime.Now;
+        var    props  = new[] { "sAMAccountName", "displayName", "msDS-UserPasswordExpiryTimeComputed", "pwdLastSet" };
         string filter = "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(!(userAccountControl:1.2.840.113556.1.4.803:=65536)))";
 
         var results = new List<PwdRow>();
-        int days = (int)(_numDays?.Value ?? 5);
+        int days    = (int)(_numDays?.Value ?? 5);
 
         foreach (var domain in MainForm.Domains)
         {
@@ -94,7 +116,7 @@ public static class Tab3_Passwords
 
                 foreach (System.DirectoryServices.SearchResult r in searcher.FindAll())
                 {
-                    long  expFT  = LdapHelper.GetPropLong(r, "msDS-UserPasswordExpiryTimeComputed");
+                    long expFT = LdapHelper.GetPropLong(r, "msDS-UserPasswordExpiryTimeComputed");
                     if (expFT == 0) continue;
                     var expDT = LdapHelper.FileTimeToDateTime(expFT);
                     if (expDT == null) continue;
@@ -108,11 +130,6 @@ public static class Tab3_Passwords
                     }
                     if (!include) continue;
 
-                    var diff      = expDT.Value - now;
-                    string timeLeft = diff.TotalSeconds >= 0
-                        ? $"Через {(int)diff.TotalDays} дн. {diff.Hours} ч."
-                        : $"Истёк {(int)Math.Abs(diff.TotalDays)} дн. {Math.Abs(diff.Hours)} ч. назад";
-
                     long pwdLastSetFT = LdapHelper.GetPropLong(r, "pwdLastSet");
                     var  pwdLastSetDT = LdapHelper.FileTimeToDateTime(pwdLastSetFT);
 
@@ -121,9 +138,9 @@ public static class Tab3_Passwords
                         Домен           = domain,
                         SamAccountName  = LdapHelper.GetProp(r, "sAMAccountName"),
                         ОтображаемоеИмя = LdapHelper.GetProp(r, "displayName"),
-                        ДатаИстечения   = expDT.Value.ToString("dd.MM.yyyy HH:mm"),
-                        ОсталосьВремени = timeLeft,
-                        ПоследняяСмена  = pwdLastSetDT?.ToString("dd.MM.yyyy HH:mm") ?? ""
+                        ДатаИстечения   = expDT.Value,
+                        ОсталосьВремени = expDT.Value - now,
+                        ПоследняяСмена  = pwdLastSetDT
                     });
                 }
             }
@@ -140,11 +157,11 @@ public static class Tab3_Passwords
 
     private record PwdRow
     {
-        public string Домен           { get; init; } = "";
-        public string SamAccountName  { get; init; } = "";
-        public string ОтображаемоеИмя { get; init; } = "";
-        public string ДатаИстечения   { get; init; } = "";
-        public string ОсталосьВремени { get; init; } = "";
-        public string ПоследняяСмена  { get; init; } = "";
+        public string    Домен           { get; init; } = "";
+        public string    SamAccountName  { get; init; } = "";
+        public string    ОтображаемоеИмя { get; init; } = "";
+        public DateTime  ДатаИстечения   { get; init; }
+        public TimeSpan  ОсталосьВремени { get; init; }
+        public DateTime? ПоследняяСмена  { get; init; }
     }
 }

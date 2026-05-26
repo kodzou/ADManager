@@ -47,6 +47,13 @@ public static class Tab7_SearchByOU
         btnFindOU.Location = new Point(550, 24);
         btnFindOU.Click   += (_, _) => DoFindOU();
 
+        _txtSearch.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            DoFindOU();
+        };
+
         // ── ListBox найденных OU ──
         var lblOuList = UiFactory.MakeLabel("Найденные OU (выберите одну):");
         lblOuList.Location = new Point(8, 54);
@@ -153,8 +160,18 @@ public static class Tab7_SearchByOU
 
         _grid = UiFactory.MakeGrid();
         _grid.Location = new Point(5, 327);
-        _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+        _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
         _grid.KeyDown += UiFactory.GridCopyHandler;
+
+        // Bottom-якорь не работает корректно: TabPage имеет дефолтный размер в момент Create(),
+        // из-за чего якорный отступ от низа получается отрицательным и грид выходит за пределы вкладки.
+        // Масштабируем высоту вручную при каждом изменении размера вкладки.
+        tab.SizeChanged += (_, _) =>
+        {
+            int h = tab.ClientSize.Height - _grid.Top - 5;
+            int w = tab.ClientSize.Width  - _grid.Left - 5;
+            if (h > 50) _grid.Size = new Size(w, h);
+        };
 
         tab.Controls.AddRange(new Control[]
         {
@@ -200,7 +217,7 @@ public static class Tab7_SearchByOU
                     // Подсчёт активных пользователей
                     int userCount = CountUsers(domain, ouDN);
 
-                    string display = $"{domain}  |  {ouName}  |  👤 {userCount}  |  {ouDN}";
+                    string display = $"{domain}  |  {ouName}  |  👤 {userCount}  |  {FormatOuPath(ouDN)}";
                     _lbResults.Items.Add(display);
                     _ouItems.Add(new OuItem(domain, ouName, ouDN));
                 }
@@ -295,6 +312,13 @@ public static class Tab7_SearchByOU
             Logger.Write($"Ошибка поиска в OU: {ex.Message}", LogType.Error);
         }
     }
+
+    // Преобразует DN вида "OU=Finance,OU=Corporate,DC=example,DC=local" → "Finance, Corporate"
+    private static string FormatOuPath(string dn) =>
+        string.Join(", ",
+            dn.Split(',')
+              .Where(p => p.TrimStart().StartsWith("OU=", StringComparison.OrdinalIgnoreCase))
+              .Select(p => p.TrimStart()[3..]));
 
     private static List<string> BuildColumnList(string ouName)
     {

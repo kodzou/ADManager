@@ -1,4 +1,6 @@
 using System.DirectoryServices;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace ADManager.Helpers;
 
@@ -23,8 +25,8 @@ public static class LdapHelper
 
             var searcher = new DirectorySearcher(entry)
             {
-                Filter = filter,
-                PageSize = 1000,
+                Filter    = filter,
+                PageSize  = 1000,
                 SizeLimit = 0
             };
 
@@ -95,11 +97,11 @@ public static class LdapHelper
             operation(entry);
             return true;
         }
-        catch (UnauthorizedAccessException)
+        catch (Exception ex) when (IsAccessDenied(ex))
         {
             Logger.Write("Недостаточно прав. Введите учётные данные администратора.", LogType.Warning);
             using var credDlg = new Dialogs.AdminCredentialsDialog(domain);
-            if (credDlg.ShowDialog(owner) != DialogResult.OK) 
+            if (credDlg.ShowDialog(owner) != DialogResult.OK)
             {
                 Logger.Write("Операция отменена пользователем.", LogType.Inactive);
                 return false;
@@ -126,5 +128,20 @@ public static class LdapHelper
             Logger.Write($"Ошибка операции AD: {ex.Message}", LogType.Error);
             return false;
         }
+    }
+
+    // Проверяет, является ли исключение ошибкой доступа (в т.ч. через TargetInvocationException от ADSI Invoke)
+    private static bool IsAccessDenied(Exception ex)
+    {
+        if (ex is UnauthorizedAccessException) return true;
+
+        if (ex is TargetInvocationException { InnerException: not null } tie)
+        {
+            return tie.InnerException is UnauthorizedAccessException ||
+                   (tie.InnerException is COMException comEx &&
+                    (uint)comEx.ErrorCode == 0x80070005);  // E_ACCESSDENIED
+        }
+
+        return false;
     }
 }

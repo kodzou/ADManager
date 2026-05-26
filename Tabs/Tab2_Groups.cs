@@ -33,6 +33,13 @@ public static class Tab2_Groups
         btnSearch.Location = new Point(424, 24);
         btnSearch.Click   += (_, _) => DoSearch();
 
+        _txtSam.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            DoSearch();
+        };
+
         _grid = UiFactory.MakeGrid();
         _grid.Location = new Point(5, 58);
         _grid.Anchor   =

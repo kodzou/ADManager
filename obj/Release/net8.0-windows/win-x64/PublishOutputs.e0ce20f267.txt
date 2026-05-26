@@ -1,2 +1,0 @@
-C:\Users\ladmin\Documents\C projects\ADManager\dist\ADManager.pdb
-C:\Users\ladmin\Documents\C projects\ADManager\dist\ADManager.exe

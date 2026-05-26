@@ -43,9 +43,25 @@ public static class CsvExporter
             {
                 IEnumerable<string> values;
                 if (item is Dictionary<string, string> d)
+                {
                     values = headers.Select(h => d.TryGetValue(h, out var v) ? v : "");
+                }
                 else
-                    values = headers.Select(h => item.GetType().GetProperty(h)?.GetValue(item)?.ToString() ?? "");
+                {
+                    values = headers.Select(h =>
+                    {
+                        var val = item.GetType().GetProperty(h)?.GetValue(item);
+                        return val switch
+                        {
+                            null     => "",
+                            DateTime dt => dt.ToString("dd.MM.yyyy HH:mm"),
+                            TimeSpan ts => ts.TotalSeconds >= 0
+                                ? $"Через {(int)ts.TotalDays} дн. {ts.Hours} ч."
+                                : $"Истёк {(int)Math.Abs(ts.TotalDays)} дн. {Math.Abs(ts.Hours)} ч. назад",
+                            _ => val.ToString() ?? ""
+                        };
+                    });
+                }
 
                 sb.AppendLine(string.Join(",", values.Select(Escape)));
             }

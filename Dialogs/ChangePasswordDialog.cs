@@ -8,7 +8,7 @@ public class ChangePasswordDialog : Form
 {
     private readonly string _domain;
     private readonly string _samAccountName;
-    private readonly string _userDN;
+    private          string _userDN;
 
     private readonly TextBox  _txtNewPwd;
     private readonly TextBox  _txtConfirm;
@@ -302,6 +302,18 @@ public class ChangePasswordDialog : Form
         if (_txtNewPwd.Text != _txtConfirm.Text)
         {
             SetResult("Пароли не совпадают.", false);
+            return;
+        }
+
+        // Повторная попытка: GetUserDN мог вернуть "" в конструкторе из-за временной
+        // недоступности LDAP. Без DN путь получается "LDAP://domain/" → E_ADS_BAD_PATHNAME.
+        if (string.IsNullOrEmpty(_userDN))
+            _userDN = GetUserDN(_domain, _samAccountName);
+
+        if (string.IsNullOrEmpty(_userDN))
+        {
+            SetResult("✖ Не удалось найти объект пользователя в AD.", false);
+            Logger.Write($"DN не найден для {_samAccountName} @ {_domain}. Проверьте подключение к домену.", LogType.Error);
             return;
         }
 

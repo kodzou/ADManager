@@ -193,8 +193,15 @@ public static class Tab6_SearchByList
 
         _grid = UiFactory.MakeGrid();
         _grid.Location = new Point(5, 290);
-        _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+        _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
         _grid.KeyDown += UiFactory.GridCopyHandler;
+
+        tab.SizeChanged += (_, _) =>
+        {
+            int h = tab.ClientSize.Height - _grid.Top - 5;
+            int w = tab.ClientSize.Width  - _grid.Left - 5;
+            if (h > 50) _grid.Size = new Size(w, h);
+        };
 
         tab.Controls.AddRange(new Control[]
         {

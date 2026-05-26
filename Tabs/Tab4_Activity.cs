@@ -60,7 +60,7 @@ public static class Tab4_Activity
         // Строка 2
         var lblType = new Label { Text = "Тип объекта:", Location = new Point(8, 44), AutoSize = true };
 
-        _rdAll = new RadioButton { Text = "Все УЗ",               Location = new Point(100, 42), Size = new Size(90, 22),  Checked = true };
+        _rdAll       = new RadioButton { Text = "Все УЗ",               Location = new Point(100, 42), Size = new Size(90, 22),  Checked = true };
         _rdUsers     = new RadioButton { Text = "Только пользователи", Location = new Point(196, 42), Size = new Size(160, 22) };
         _rdComputers = new RadioButton { Text = "Только устройства",   Location = new Point(362, 42), Size = new Size(150, 22) };
 
@@ -75,6 +75,21 @@ public static class Tab4_Activity
         _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
         _grid.KeyDown += UiFactory.GridCopyHandler;
 
+        // Форматирование: DateTime? → "dd.MM.yyyy HH:mm" или "Никогда"
+        _grid.CellFormatting += (_, e) =>
+        {
+            if (e.Value is DateTime dt)
+            {
+                e.Value             = dt.ToString("dd.MM.yyyy HH:mm");
+                e.FormattingApplied = true;
+            }
+            else if (e.Value is DBNull || e.Value == null)
+            {
+                e.Value             = "Никогда";
+                e.FormattingApplied = true;
+            }
+        };
+
         tab.Controls.AddRange(new Control[] { pan, _grid });
         return tab;
     }
@@ -85,7 +100,7 @@ public static class Tab4_Activity
         var    cutoff   = DateTime.Now.AddDays(-days);
         long   cutoffFT = cutoff.ToFileTime();
 
-        string mode = _rdUsers?.Checked == true ? "users"
+        string mode = _rdUsers?.Checked == true     ? "users"
                     : _rdComputers?.Checked == true ? "computers"
                     : "all";
 
@@ -96,8 +111,8 @@ public static class Tab4_Activity
         // ── Пользователи ──
         if (mode is "all" or "users")
         {
-            string[] propsU = { "sAMAccountName", "displayName", "lastLogonTimestamp", "pwdLastSet", "userAccountControl" };
-            string filterU = _chkMustChange?.Checked == true
+            string[] propsU  = { "sAMAccountName", "displayName", "lastLogonTimestamp", "pwdLastSet", "userAccountControl" };
+            string   filterU = _chkMustChange?.Checked == true
                 ? $"(&(objectClass=user)(!(objectClass=computer))(!(userAccountControl:1.2.840.113556.1.4.803:=2))(lastLogonTimestamp<={cutoffFT})(pwdLastSet=0))"
                 : $"(&(objectClass=user)(!(objectClass=computer))(!(userAccountControl:1.2.840.113556.1.4.803:=2))(lastLogonTimestamp<={cutoffFT}))";
 
@@ -120,13 +135,13 @@ public static class Tab4_Activity
 
                         results.Add(new ActivityRow
                         {
-                            Тип            = "Пользователь",
-                            Домен          = domain,
-                            SamAccountName = LdapHelper.GetProp(r, "sAMAccountName"),
+                            Тип             = "Пользователь",
+                            Домен           = domain,
+                            SamAccountName  = LdapHelper.GetProp(r, "sAMAccountName"),
                             ОтображаемоеИмя = LdapHelper.GetProp(r, "displayName"),
-                            ПоследнийВход  = lltDT?.ToString("dd.MM.yyyy HH:mm") ?? "Никогда",
-                            ДнейНазад      = daysAgo,
-                            СменитьПароль  = mustChg ? "Да" : "Нет"
+                            ПоследнийВход   = lltDT,   // DateTime? — null означает "Никогда"
+                            ДнейНазад       = daysAgo,
+                            СменитьПароль   = mustChg ? "Да" : "Нет"
                         });
                     }
                 }
@@ -138,7 +153,7 @@ public static class Tab4_Activity
         if (mode is "all" or "computers")
         {
             string[] propsC = { "sAMAccountName", "displayName", "lastLogonTimestamp", "userAccountControl", "operatingSystem" };
-            string filterC  = $"(&(objectClass=computer)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(lastLogonTimestamp<={cutoffFT}))";
+            string   filterC = $"(&(objectClass=computer)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(lastLogonTimestamp<={cutoffFT}))";
 
             foreach (var domain in MainForm.Domains)
             {
@@ -159,7 +174,7 @@ public static class Tab4_Activity
                             Домен           = domain,
                             SamAccountName  = LdapHelper.GetProp(r, "sAMAccountName"),
                             ОтображаемоеИмя = LdapHelper.GetProp(r, "displayName"),
-                            ПоследнийВход   = lltDT?.ToString("dd.MM.yyyy HH:mm") ?? "Никогда",
+                            ПоследнийВход   = lltDT,   // DateTime? — null означает "Никогда"
                             ДнейНазад       = daysAgo,
                             СменитьПароль   = "—"
                         });
@@ -176,12 +191,12 @@ public static class Tab4_Activity
 
     private record ActivityRow
     {
-        public string Тип             { get; init; } = "";
-        public string Домен           { get; init; } = "";
-        public string SamAccountName  { get; init; } = "";
-        public string ОтображаемоеИмя { get; init; } = "";
-        public string ПоследнийВход   { get; init; } = "";
-        public int    ДнейНазад       { get; init; }
-        public string СменитьПароль   { get; init; } = "";
+        public string    Тип             { get; init; } = "";
+        public string    Домен           { get; init; } = "";
+        public string    SamAccountName  { get; init; } = "";
+        public string    ОтображаемоеИмя { get; init; } = "";
+        public DateTime? ПоследнийВход   { get; init; }   // null → "Никогда"
+        public int       ДнейНазад       { get; init; }
+        public string    СменитьПароль   { get; init; } = "";
     }
 }
