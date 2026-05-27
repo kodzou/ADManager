@@ -74,11 +74,30 @@ public static class Tab1_UserSearch
             AnchorStyles.Right | AnchorStyles.Bottom;
 
         // --- Контекстное меню ---
-        var ctxMenu = new ContextMenuStrip();
-        var menuGroups  = new ToolStripMenuItem("Группы пользователя");
-        var menuDetails = new ToolStripMenuItem("Подробная информация");
-        ctxMenu.Items.AddRange(new ToolStripItem[] { menuGroups, menuDetails });
+        var ctxMenu     = new ContextMenuStrip();
+        var menuGroups  = new ToolStripMenuItem("👥  Группы пользователя");
+        var menuDetails = new ToolStripMenuItem("ℹ  Подробная информация");
+        var menuSep     = new ToolStripSeparator();
+        var menuLock    = new ToolStripMenuItem("🔒  Заблокировать");
+        var menuDisable = new ToolStripMenuItem("🚫  Отключить");
+        ctxMenu.Items.AddRange(new ToolStripItem[] { menuGroups, menuDetails, menuSep, menuLock, menuDisable });
         _grid.ContextMenuStrip = ctxMenu;
+
+        ctxMenu.Opening += (_, _) =>
+        {
+            if (_selectedRow == null)
+            {
+                menuLock.Enabled = menuDisable.Enabled = false;
+                return;
+            }
+            bool isDisabled = _selectedRow.Cells["Enabled"].Value?.ToString() == "Нет" ||
+                              (_selectedRow.Cells["DistinguishedName"].Value?.ToString() ?? "")
+                                  .IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool isLocked = _selectedRow.Cells["LockedOut"].Value?.ToString() == "Да";
+
+            menuLock.Enabled    = !isDisabled && !isLocked;
+            menuDisable.Enabled = !isDisabled;
+        };
 
         // --- Events ---
         _grid.MouseDown       += OnGridMouseDown;
@@ -124,6 +143,9 @@ public static class Tab1_UserSearch
             using var dlg = new UserDetailsDialog(domain, sam);
             dlg.ShowDialog(tab.FindForm());
         };
+
+        menuLock.Click    += (_, _) => DoLock();
+        menuDisable.Click += (_, _) => DoDisable();
 
         _grid.CellFormatting += OnGridCellFormatting;
 
@@ -253,6 +275,53 @@ public static class Tab1_UserSearch
             _selectedRow.Cells["LockedOut"].Value = "Нет";
             _btnUnlock!.Enabled   = false;
             _btnUnlock.BackColor  = Color.FromArgb(120, 125, 140);
+        }
+    }
+
+    private static void DoLock()
+    {
+        if (_selectedRow == null) return;
+        var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
+        var domain = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
+        var dn     = _selectedRow.Cells["DistinguishedName"].Value?.ToString() ?? "";
+        if (string.IsNullOrEmpty(dn)) { Logger.Write($"DN не найден для {sam}.", LogType.Error); return; }
+
+        bool ok = LdapHelper.InvokeADOperation(domain, dn, entry =>
+        {
+            entry.Properties["lockoutTime"].Value = DateTime.UtcNow.ToFileTimeUtc();
+            entry.CommitChanges();
+        }, _grid!.FindForm()!);
+
+        if (ok)
+        {
+            Logger.Write($"Учётная запись {sam} заблокирована.", LogType.OK);
+            _selectedRow.Cells["LockedOut"].Value = "Да";
+            _btnUnlock!.Enabled  = true;
+            _btnUnlock.BackColor = Color.FromArgb(200, 120, 30);
+        }
+    }
+
+    private static void DoDisable()
+    {
+        if (_selectedRow == null) return;
+        var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
+        var domain = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
+        var dn     = _selectedRow.Cells["DistinguishedName"].Value?.ToString() ?? "";
+        if (string.IsNullOrEmpty(dn)) { Logger.Write($"DN не найден для {sam}.", LogType.Error); return; }
+
+        bool ok = LdapHelper.InvokeADOperation(domain, dn, entry =>
+        {
+            var uacVal = entry.Properties["userAccountControl"].Value;
+            int uac    = uacVal is int i ? i : Convert.ToInt32(uacVal);
+            entry.Properties["userAccountControl"].Value = uac | 2;
+            entry.CommitChanges();
+        }, _grid!.FindForm()!);
+
+        if (ok)
+        {
+            Logger.Write($"Учётная запись {sam} отключена.", LogType.OK);
+            _selectedRow.Cells["Enabled"].Value = "Нет";
+            _lblDisabledStatus!.Visible = true;
         }
     }
 
