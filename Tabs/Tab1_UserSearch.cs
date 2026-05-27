@@ -12,6 +12,7 @@ public static class Tab1_UserSearch
     private static Button? _btnUnlock;
     private static Button? _btnChangePwd;
     private static Label?  _lblSelectedUser;
+    private static Label?  _lblDisabledStatus;
 
     public static TabPage Create()
     {
@@ -53,6 +54,16 @@ public static class Tab1_UserSearch
             Size      = new Size(180, 22),
             ForeColor = Color.FromArgb(50, 80, 160),
             Font      = new Font("Segoe UI", 9f, FontStyle.Bold)
+        };
+
+        _lblDisabledStatus = new Label
+        {
+            Location  = new Point(995, 28),
+            Size      = new Size(100, 22),
+            Text      = "Отключена!",
+            ForeColor = Color.FromArgb(220, 60, 60),
+            Font      = new Font("Segoe UI", 9f, FontStyle.Bold),
+            Visible   = false
         };
 
         // --- DataGridView ---
@@ -114,6 +125,8 @@ public static class Tab1_UserSearch
             dlg.ShowDialog(tab.FindForm());
         };
 
+        _grid.CellFormatting += OnGridCellFormatting;
+
         // Ctrl+A / Ctrl+C / Ctrl+Shift+C
         _grid.KeyDown += UiFactory.GridCopyHandler;
 
@@ -121,7 +134,7 @@ public static class Tab1_UserSearch
         {
             lblSn, txtSn, lblGn, txtGn,
             btnSearch, _btnUnlock, _btnChangePwd,
-            _lblSelectedUser, _grid
+            _lblSelectedUser, _lblDisabledStatus, _grid
         });
 
         return tab;
@@ -146,7 +159,8 @@ public static class Tab1_UserSearch
         {
             "sAMAccountName", "displayName", "sn", "givenName",
             "userAccountControl", "lockoutTime", "pwdLastSet",
-            "accountExpires", "msDS-UserPasswordExpiryTimeComputed"
+            "accountExpires", "msDS-UserPasswordExpiryTimeComputed",
+            "distinguishedName"
         };
 
         var results = new List<SearchResultRow>();
@@ -195,7 +209,8 @@ public static class Tab1_UserSearch
                         ExpirationDate       = expDateStr,
                         PasswordNeverExpires = pwdNeverExpires ? "Да" : "Нет",
                         AccountExpires       = accountExpDT?.ToString("dd.MM.yyyy HH:mm") ?? "Не задано",
-                        MustChangePwd        = mustChange ? "Да" : "Нет"
+                        MustChangePwd        = mustChange ? "Да" : "Нет",
+                        DistinguishedName    = LdapHelper.GetProp(r, "distinguishedName")
                     });
                 }
             }
@@ -206,6 +221,7 @@ public static class Tab1_UserSearch
         }
 
         GridFiller.Fill(_grid!, results);
+        if (_grid!.Columns["DistinguishedName"] is { } dnCol) dnCol.Visible = false;
         Logger.Write($"Найдено: {results.Count} записей.", LogType.Summary);
     }
 
@@ -268,14 +284,20 @@ public static class Tab1_UserSearch
 
         if (row == null)
         {
-            _btnUnlock!.Enabled   = false;
-            _btnChangePwd!.Enabled = false;
-            _lblSelectedUser!.Text = "";
+            _btnUnlock!.Enabled        = false;
+            _btnChangePwd!.Enabled     = false;
+            _lblSelectedUser!.Text     = "";
+            _lblDisabledStatus!.Visible = false;
             return;
         }
 
         var sam = row.Cells["SamAccountName"].Value?.ToString() ?? "";
         _lblSelectedUser!.Text = sam;
+
+        bool isDisabled = row.Cells["Enabled"].Value?.ToString() == "Нет" ||
+                          (row.Cells["DistinguishedName"].Value?.ToString() ?? "")
+                              .IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) >= 0;
+        _lblDisabledStatus!.Visible = isDisabled;
 
         bool locked = row.Cells["LockedOut"].Value?.ToString() == "Да";
         _btnUnlock!.Enabled   = locked;
@@ -285,6 +307,20 @@ public static class Tab1_UserSearch
 
         _btnChangePwd!.Enabled   = true;
         _btnChangePwd.BackColor  = Color.FromArgb(50, 100, 200);
+    }
+
+    private static void OnGridCellFormatting(object? s, DataGridViewCellFormattingEventArgs e)
+    {
+        if (_grid == null || e.RowIndex < 0) return;
+        if (_grid.Columns[e.ColumnIndex].Name != "Enabled") return;
+
+        var row = _grid.Rows[e.RowIndex];
+        bool isDisabled = row.Cells["Enabled"].Value?.ToString() == "Нет" ||
+                          (row.Cells["DistinguishedName"].Value?.ToString() ?? "")
+                              .IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        if (isDisabled)
+            e.CellStyle.BackColor = Color.FromArgb(255, 146, 92);
     }
 
     // Модель строки результата
@@ -301,5 +337,6 @@ public static class Tab1_UserSearch
         public string PasswordNeverExpires { get; init; } = "";
         public string AccountExpires       { get; init; } = "";
         public string MustChangePwd        { get; init; } = "";
+        public string DistinguishedName    { get; init; } = "";
     }
 }
