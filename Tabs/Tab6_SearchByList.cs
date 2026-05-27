@@ -248,7 +248,7 @@ public static class Tab6_SearchByList
 
         foreach (var fio in fioLines)
         {
-            string norm  = fio.Replace('ё', 'е').Replace('Ё', 'Е');
+            string norm  = ExtractSearchName(fio);
             bool   found = false;
 
             foreach (var domain in selectedDomains)
@@ -256,8 +256,8 @@ public static class Tab6_SearchByList
                 try
                 {
                     string filter = _chkActiveOnly?.Checked == true
-                        ? $"(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(displayName=*{norm}*))"
-                        : $"(&(objectClass=user)(displayName=*{norm}*))";
+                        ? $"(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(displayName={norm}*))"
+                        : $"(&(objectClass=user)(displayName={norm}*))";
 
                     var searcher = LdapHelper.CreateSearcher(domain, filter, ldapProps);
                     if (searcher == null) continue;
@@ -297,8 +297,24 @@ public static class Tab6_SearchByList
 
         AppState.LastResults = results.Cast<object>().ToList();
         GridFiller.FillDynamic(_grid!, cols, results);
-        _lblCount!.Text = $"Готово: {results.Count} записей";
-        Logger.Write($"Найдено: {results.Count} записей.", LogType.Summary);
+
+        int foundCount    = results.Count(r => r.TryGetValue("Domain", out var d) && d != "(не найдено)");
+        int notFoundCount = results.Count - foundCount;
+        _lblCount!.Text = notFoundCount > 0
+            ? $"Найдено: {foundCount} | Не найдено: {notFoundCount}"
+            : $"Готово: {foundCount} записей";
+        Logger.Write(notFoundCount > 0
+            ? $"Найдено: {foundCount} пользователей, не найдено: {notFoundCount}."
+            : $"Найдено: {foundCount} записей.", LogType.Summary);
+    }
+
+    // Извлекает «Фамилия Имя» из строки, отбрасывая отчество и примечания в скобках
+    private static string ExtractSearchName(string fio)
+    {
+        string clean = System.Text.RegularExpressions.Regex.Replace(fio, @"\s*\(.*?\)", "").Trim();
+        clean = clean.Replace('ё', 'е').Replace('Ё', 'Е');
+        var parts = clean.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0]} {parts[1]}" : clean;
     }
 
     private static List<string> BuildColumnList()
