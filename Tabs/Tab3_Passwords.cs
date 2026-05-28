@@ -101,7 +101,7 @@ public static class Tab3_Passwords
         Logger.Write("Поиск пользователей по паролям...", LogType.Info);
 
         var    now    = DateTime.Now;
-        var    props  = new[] { "sAMAccountName", "displayName", "msDS-UserPasswordExpiryTimeComputed", "pwdLastSet" };
+        var    props  = new[] { "sAMAccountName", "displayName", "msDS-UserPasswordExpiryTimeComputed", "pwdLastSet", "distinguishedName" };
         string filter = "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(!(userAccountControl:1.2.840.113556.1.4.803:=65536)))";
 
         var results = new List<PwdRow>();
@@ -138,6 +138,7 @@ public static class Tab3_Passwords
                         Домен           = domain,
                         SamAccountName  = LdapHelper.GetProp(r, "sAMAccountName"),
                         ОтображаемоеИмя = LdapHelper.GetProp(r, "displayName"),
+                        РасположениеOU  = FormatOuPath(LdapHelper.GetProp(r, "distinguishedName")),
                         ДатаИстечения   = expDT.Value,
                         ОсталосьВремени = expDT.Value - now,
                         ПоследняяСмена  = pwdLastSetDT
@@ -155,11 +156,18 @@ public static class Tab3_Passwords
         Logger.Write($"Найдено: {results.Count} записей.", LogType.Summary);
     }
 
+    private static string FormatOuPath(string dn) =>
+        string.Join(", ",
+            dn.Split(',')
+              .Where(p => p.TrimStart().StartsWith("OU=", StringComparison.OrdinalIgnoreCase))
+              .Select(p => p.TrimStart()[3..]));
+
     private record PwdRow
     {
         public string    Домен           { get; init; } = "";
         public string    SamAccountName  { get; init; } = "";
         public string    ОтображаемоеИмя { get; init; } = "";
+        public string    РасположениеOU  { get; init; } = "";
         public DateTime  ДатаИстечения   { get; init; }
         public TimeSpan  ОсталосьВремени { get; init; }
         public DateTime? ПоследняяСмена  { get; init; }

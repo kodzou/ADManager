@@ -163,8 +163,6 @@ public static class Tab7_SearchByOU
         _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
         _grid.KeyDown += UiFactory.GridCopyHandler;
 
-        // Bottom-якорь не работает корректно: TabPage имеет дефолтный размер в момент Create(),
-        // из-за чего якорный отступ от низа получается отрицательным и грид выходит за пределы вкладки.
         // Масштабируем высоту вручную при каждом изменении размера вкладки.
         tab.SizeChanged += (_, _) =>
         {

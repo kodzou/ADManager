@@ -56,7 +56,7 @@ public static class UiFactory
         return btn;
     }
 
-    public static Button MakeExportButton(string text = "↓ Экспорт CSV")
+    public static Button MakeExportButton(string text = "Экспорт в CSV")
     {
         var btn = new Button
         {

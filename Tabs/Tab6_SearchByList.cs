@@ -155,18 +155,9 @@ public static class Tab6_SearchByList
         btnFind.Location = new Point(5, 254);
         btnFind.Click   += (_, _) => DoFind();
 
-        var btnExport = new Button
-        {
-            Text      = "Выгрузить в CSV",
-            Location  = new Point(115, 254),
-            Size      = new Size(140, 28),
-            BackColor = Color.FromArgb(34, 139, 75),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Font      = new Font("Segoe UI", 9f, FontStyle.Bold)
-        };
-        btnExport.FlatAppearance.BorderSize = 0;
-        btnExport.Click += (_, _) => CsvExporter.ExportLast("ad_export.csv");
+        var btnExport = UiFactory.MakeExportButton();
+        btnExport.Location = new Point(115, 254);
+        btnExport.Click   += (_, _) => CsvExporter.ExportLast("ad_export.csv");
 
         var btnClear = new Button
         {
