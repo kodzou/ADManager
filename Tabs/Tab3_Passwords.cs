@@ -167,9 +167,9 @@ public static class Tab3_Passwords
         public string    Домен           { get; init; } = "";
         public string    SamAccountName  { get; init; } = "";
         public string    ОтображаемоеИмя { get; init; } = "";
-        public string    РасположениеOU  { get; init; } = "";
         public DateTime  ДатаИстечения   { get; init; }
         public TimeSpan  ОсталосьВремени { get; init; }
         public DateTime? ПоследняяСмена  { get; init; }
+        public string    РасположениеOU  { get; init; } = "";
     }
 }
