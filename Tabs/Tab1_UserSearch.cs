@@ -77,17 +77,27 @@ public static class Tab1_UserSearch
         var ctxMenu     = new ContextMenuStrip();
         var menuGroups  = new ToolStripMenuItem("👥  Группы пользователя");
         var menuDetails = new ToolStripMenuItem("ℹ  Подробная информация");
-        var menuSep     = new ToolStripSeparator();
+        var menuSep1    = new ToolStripSeparator();
+        var menuExpiry  = new ToolStripMenuItem("📅  Установить срок действия");
+        var menuSep2    = new ToolStripSeparator();
+        var menuUnlock  = new ToolStripMenuItem("🔓  Разблокировать");
         var menuLock    = new ToolStripMenuItem("🔒  Заблокировать");
+        var menuEnable  = new ToolStripMenuItem("✅  Включить");
         var menuDisable = new ToolStripMenuItem("🚫  Отключить");
-        ctxMenu.Items.AddRange(new ToolStripItem[] { menuGroups, menuDetails, menuSep, menuLock, menuDisable });
+        ctxMenu.Items.AddRange(new ToolStripItem[]
+        {
+            menuGroups, menuDetails,
+            menuSep1, menuExpiry,
+            menuSep2, menuUnlock, menuLock, menuEnable, menuDisable
+        });
         _grid.ContextMenuStrip = ctxMenu;
 
         ctxMenu.Opening += (_, _) =>
         {
             if (_selectedRow == null)
             {
-                menuLock.Enabled = menuDisable.Enabled = false;
+                menuExpiry.Enabled = menuUnlock.Enabled = menuLock.Enabled =
+                menuEnable.Enabled = menuDisable.Enabled = false;
                 return;
             }
             bool isDisabled = _selectedRow.Cells["Enabled"].Value?.ToString() == "Нет" ||
@@ -95,7 +105,10 @@ public static class Tab1_UserSearch
                                   .IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) >= 0;
             bool isLocked = _selectedRow.Cells["LockedOut"].Value?.ToString() == "Да";
 
+            menuExpiry.Enabled  = true;
+            menuUnlock.Enabled  = isLocked;
             menuLock.Enabled    = !isDisabled && !isLocked;
+            menuEnable.Enabled  = isDisabled;
             menuDisable.Enabled = !isDisabled;
         };
 
@@ -144,7 +157,10 @@ public static class Tab1_UserSearch
             dlg.ShowDialog(tab.FindForm());
         };
 
+        menuExpiry.Click  += (_, _) => DoSetExpiry();
+        menuUnlock.Click  += (_, _) => DoUnlock();
         menuLock.Click    += (_, _) => DoLock();
+        menuEnable.Click  += (_, _) => DoEnable();
         menuDisable.Click += (_, _) => DoDisable();
 
         _grid.CellFormatting += OnGridCellFormatting;
@@ -252,17 +268,9 @@ public static class Tab1_UserSearch
         if (_selectedRow == null) return;
         var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
         var domain = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
+        var dn     = _selectedRow.Cells["DistinguishedName"].Value?.ToString() ?? "";
+        if (string.IsNullOrEmpty(dn)) { Logger.Write($"DN не найден для {sam}.", LogType.Error); return; }
 
-        var searcher = LdapHelper.CreateSearcher(
-            domain,
-            $"(&(objectClass=user)(sAMAccountName={sam}))",
-            new[] { "distinguishedName" });
-        if (searcher == null) return;
-
-        var res = searcher.FindOne();
-        if (res == null) { Logger.Write($"Не найден: {sam}", LogType.Error); return; }
-
-        var dn = LdapHelper.GetProp(res, "distinguishedName");
         bool ok = LdapHelper.InvokeADOperation(domain, dn, entry =>
         {
             entry.Properties["lockoutTime"].Value = 0;
@@ -273,9 +281,46 @@ public static class Tab1_UserSearch
         {
             Logger.Write($"Учётная запись {sam} разблокирована.", LogType.OK);
             _selectedRow.Cells["LockedOut"].Value = "Нет";
-            _btnUnlock!.Enabled   = false;
-            _btnUnlock.BackColor  = Color.FromArgb(120, 125, 140);
+            _btnUnlock!.Enabled  = false;
+            _btnUnlock.BackColor = Color.FromArgb(120, 125, 140);
         }
+    }
+
+    private static void DoEnable()
+    {
+        if (_selectedRow == null) return;
+        var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
+        var domain = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
+        var dn     = _selectedRow.Cells["DistinguishedName"].Value?.ToString() ?? "";
+        if (string.IsNullOrEmpty(dn)) { Logger.Write($"DN не найден для {sam}.", LogType.Error); return; }
+
+        bool ok = LdapHelper.InvokeADOperation(domain, dn, entry =>
+        {
+            var uacVal = entry.Properties["userAccountControl"].Value;
+            int uac    = uacVal is int i ? i : Convert.ToInt32(uacVal);
+            entry.Properties["userAccountControl"].Value = uac & ~2;
+            entry.CommitChanges();
+        }, _grid!.FindForm()!);
+
+        if (ok)
+        {
+            Logger.Write($"Учётная запись {sam} включена.", LogType.OK);
+            _selectedRow.Cells["Enabled"].Value = "Да";
+            _lblDisabledStatus!.Visible = false;
+        }
+    }
+
+    private static void DoSetExpiry()
+    {
+        if (_selectedRow == null) return;
+        var sam         = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
+        var domain      = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
+        var dn          = _selectedRow.Cells["DistinguishedName"].Value?.ToString() ?? "";
+        var displayName = _selectedRow.Cells["DisplayName"].Value?.ToString() ?? sam;
+        if (string.IsNullOrEmpty(dn)) { Logger.Write($"DN не найден для {sam}.", LogType.Error); return; }
+
+        using var dlg = new SetExpiryDialog(domain, sam, dn, displayName, _grid!.FindForm()!);
+        dlg.ShowDialog(_grid!.FindForm());
     }
 
     private static void DoLock()

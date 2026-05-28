@@ -13,7 +13,7 @@ public class UserDetailsDialog : Form
         {
             "displayName", "sAMAccountName", "mail", "mobile", "l", "st",
             "title", "department", "company", "manager", "canonicalName",
-            "userAccountControl", "whenCreated", "whenChanged"
+            "userAccountControl", "accountExpires", "whenCreated", "whenChanged"
         };
 
         var searcher = LdapHelper.CreateSearcher(
@@ -48,6 +48,7 @@ public class UserDetailsDialog : Form
             ("Руководитель",     "manager"),
             ("Каноническое имя", "canonicalName"),
             ("УЗ активна",       "_enabled"),
+            ("Срок действия",    "_accountExpires"),
             ("Создан",           "whenCreated"),
             ("Изменён",          "whenChanged")
         };
@@ -87,12 +88,13 @@ public class UserDetailsDialog : Form
 
             string val = attr switch
             {
-                "_domain"  => domain,
-                "_enabled" => enabled ? "Да" : "Нет",
-                "manager"  => LdapHelper.GetCNFromDN(LdapHelper.GetProp(result, "manager")),
-                "whenCreated" => TryFormatDate(LdapHelper.GetProp(result, "whenCreated")),
-                "whenChanged" => TryFormatDate(LdapHelper.GetProp(result, "whenChanged")),
-                _             => LdapHelper.GetProp(result, attr)
+                "_domain"         => domain,
+                "_enabled"        => enabled ? "Да" : "Нет",
+                "_accountExpires" => FormatAccountExpires(LdapHelper.GetPropLong(result, "accountExpires")),
+                "manager"         => LdapHelper.GetCNFromDN(LdapHelper.GetProp(result, "manager")),
+                "whenCreated"     => TryFormatDate(LdapHelper.GetProp(result, "whenCreated")),
+                "whenChanged"     => TryFormatDate(LdapHelper.GetProp(result, "whenChanged")),
+                _                 => LdapHelper.GetProp(result, attr)
             };
 
             var txt = new TextBox
@@ -132,5 +134,11 @@ public class UserDetailsDialog : Form
         return DateTime.TryParse(raw, out var dt)
             ? dt.ToString("dd.MM.yyyy HH:mm")
             : raw;
+    }
+
+    private static string FormatAccountExpires(long fileTime)
+    {
+        var dt = LdapHelper.FileTimeToDateTime(fileTime);
+        return dt.HasValue ? dt.Value.ToString("dd.MM.yyyy") : "Не ограничен";
     }
 }
