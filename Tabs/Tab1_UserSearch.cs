@@ -5,181 +5,96 @@ using ADManager.Dialogs;
 
 namespace ADManager.Tabs;
 
-public static class Tab1_UserSearch
+public partial class Tab1_UserSearch : UserControl
 {
-    private static DataGridView? _grid;
-    private static DataGridViewRow? _selectedRow;
-    private static Button? _btnUnlock;
-    private static Button? _btnChangePwd;
-    private static Label?  _lblSelectedUser;
-    private static Label?  _lblDisabledStatus;
+    private DataGridViewRow? _selectedRow;
 
-    public static TabPage Create()
+    public Tab2_Groups? Tab2 { get; set; }
+
+    public Tab1_UserSearch()
     {
-        var tab = new TabPage("1. Поиск пользователя")
-        {
-            BackColor = Color.FromArgb(240, 242, 245)
-        };
+        InitializeComponent();
+        WireEvents();
+    }
 
-        // --- Поля ввода ---
-        var lblSn = UiFactory.MakeLabel("Фамилия (обязательно):");
-        lblSn.Location = new Point(8, 6);
-
-        var txtSn = UiFactory.MakeTextBox("Напр.: Иванов", 200);
-        txtSn.Location = new Point(8, 26);
-
-        var lblGn = UiFactory.MakeLabel("Имя (необязательно):");
-        lblGn.Location = new Point(218, 6);
-
-        var txtGn = UiFactory.MakeTextBox("Напр.: Иван", 180);
-        txtGn.Location = new Point(218, 26);
-
-        // --- Кнопки ---
-        var btnSearch = UiFactory.MakeActionButton("Найти", 100);
-        btnSearch.Location = new Point(408, 24);
-
-        _btnUnlock = UiFactory.MakeActionButton("Разблокировать", 140);
-        _btnUnlock.Location = new Point(514, 24);
-        _btnUnlock.Enabled = false;
-        _btnUnlock.BackColor = Color.FromArgb(120, 125, 140);
-
-        _btnChangePwd = UiFactory.MakeActionButton("Сменить пароль", 140);
-        _btnChangePwd.Location = new Point(660, 24);
-        _btnChangePwd.Enabled = false;
-        _btnChangePwd.BackColor = Color.FromArgb(120, 125, 140);
-
-        _lblSelectedUser = new Label
-        {
-            Location  = new Point(808, 28),
-            Size      = new Size(180, 22),
-            ForeColor = Color.FromArgb(50, 80, 160),
-            Font      = new Font("Segoe UI", 9f, FontStyle.Bold)
-        };
-
-        _lblDisabledStatus = new Label
-        {
-            Location  = new Point(995, 28),
-            Size      = new Size(100, 22),
-            Text      = "Отключена!",
-            ForeColor = Color.FromArgb(220, 60, 60),
-            Font      = new Font("Segoe UI", 9f, FontStyle.Bold),
-            Visible   = false
-        };
-
-        // --- DataGridView ---
-        _grid = UiFactory.MakeGrid();
-        _grid.Location = new Point(5, 58);
-        _grid.Anchor =
-            AnchorStyles.Top | AnchorStyles.Left |
-            AnchorStyles.Right | AnchorStyles.Bottom;
-
-        // --- Контекстное меню ---
-        var ctxMenu     = new ContextMenuStrip();
-        var menuGroups  = new ToolStripMenuItem("👥  Группы пользователя");
-        var menuDetails = new ToolStripMenuItem("ℹ  Подробная информация");
-        var menuSep1    = new ToolStripSeparator();
-        var menuExpiry  = new ToolStripMenuItem("📅  Установить срок действия");
-        var menuSep2    = new ToolStripSeparator();
-        var menuUnlock  = new ToolStripMenuItem("🔓  Разблокировать");
-        var menuLock    = new ToolStripMenuItem("🔒  Заблокировать");
-        var menuEnable  = new ToolStripMenuItem("✅  Включить");
-        var menuDisable = new ToolStripMenuItem("🚫  Отключить");
-        ctxMenu.Items.AddRange(new ToolStripItem[]
-        {
-            menuGroups, menuDetails,
-            menuSep1, menuExpiry,
-            menuSep2, menuUnlock, menuLock, menuEnable, menuDisable
-        });
-        _grid.ContextMenuStrip = ctxMenu;
-
-        ctxMenu.Opening += (_, _) =>
+    private void WireEvents()
+    {
+        _ctxMenu.Opening += (_, _) =>
         {
             if (_selectedRow == null)
             {
-                menuExpiry.Enabled = menuUnlock.Enabled = menuLock.Enabled =
-                menuEnable.Enabled = menuDisable.Enabled = false;
+                _menuExpiry.Enabled = _menuUnlock.Enabled = _menuLock.Enabled =
+                _menuEnable.Enabled = _menuDisable.Enabled = false;
                 return;
             }
             bool isDisabled = _selectedRow.Cells["Enabled"].Value?.ToString() == "Нет" ||
                               (_selectedRow.Cells["DistinguishedName"].Value?.ToString() ?? "")
                                   .IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) >= 0;
-            bool isLocked = _selectedRow.Cells["LockedOut"].Value?.ToString() == "Да";
+            bool isLocked   = _selectedRow.Cells["LockedOut"].Value?.ToString() == "Да";
 
-            menuExpiry.Enabled  = true;
-            menuUnlock.Enabled  = isLocked;
-            menuLock.Enabled    = !isDisabled && !isLocked;
-            menuEnable.Enabled  = isDisabled;
-            menuDisable.Enabled = !isDisabled;
+            _menuExpiry.Enabled  = true;
+            _menuUnlock.Enabled  = isLocked;
+            _menuLock.Enabled    = !isDisabled && !isLocked;
+            _menuEnable.Enabled  = isDisabled;
+            _menuDisable.Enabled = !isDisabled;
         };
 
-        // --- Events ---
-        _grid.MouseDown       += OnGridMouseDown;
-        _grid.SelectionChanged += OnSelectionChanged;
-        menuGroups.Click += (_, _) =>
+        _grid!.MouseDown        += OnGridMouseDown;
+        _grid.SelectionChanged  += OnSelectionChanged;
+        _grid.CellFormatting    += OnGridCellFormatting;
+        _grid.KeyDown           += UiFactory.GridCopyHandler;
+
+        _menuGroups.Click += (_, _) =>
         {
             if (_selectedRow == null) return;
             string sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
             string domain = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
-            // Находим MainForm → TabControl → переходим на Tab2
-            var form = tab.FindForm() as MainForm;
+            var form = this.FindForm() as MainForm;
             if (form == null) return;
-            Tab2_Groups.SetSearch(sam, domain);
-            form.SelectTab(1);          // индекс Tab2
-            Tab2_Groups.TriggerSearch();
+            Tab2?.SetSearch(sam, domain);
+            form.SelectTab(1);
+            Tab2?.TriggerSearch();
         };
-        btnSearch.Click += (_, _) => DoSearch(txtSn.Text.Trim(), txtGn.Text.Trim());
+
+        _btnSearch.Click += (_, _) => DoSearch(_txtSn.Text.Trim(), _txtGn.Text.Trim());
 
         KeyEventHandler searchOnEnter = (_, e) =>
         {
             if (e.KeyCode != Keys.Enter) return;
             e.SuppressKeyPress = true;
-            DoSearch(txtSn.Text.Trim(), txtGn.Text.Trim());
+            DoSearch(_txtSn.Text.Trim(), _txtGn.Text.Trim());
         };
-        txtSn.KeyDown += searchOnEnter;
-        txtGn.KeyDown += searchOnEnter;
+        _txtSn.KeyDown += searchOnEnter;
+        _txtGn.KeyDown += searchOnEnter;
 
-        _btnUnlock.Click += (_, _) => DoUnlock();
-        _btnChangePwd.Click += (_, _) =>
+        _btnUnlock!.Click   += (_, _) => DoUnlock();
+        _btnChangePwd!.Click += (_, _) =>
         {
             if (_selectedRow == null) return;
             var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
             var domain = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
-            using var dlg = new ChangePasswordDialog(domain, sam);
-            dlg.ShowDialog(tab.FindForm());
+            using var dlg = new Dialogs.ChangePasswordDialog(domain, sam);
+            dlg.ShowDialog(this.FindForm());
         };
 
-        menuDetails.Click += (_, _) =>
+        _menuDetails.Click  += (_, _) =>
         {
             if (_selectedRow == null) return;
             var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
             var domain = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
-            using var dlg = new UserDetailsDialog(domain, sam);
-            dlg.ShowDialog(tab.FindForm());
+            using var dlg = new Dialogs.UserDetailsDialog(domain, sam);
+            dlg.ShowDialog(this.FindForm());
         };
 
-        menuExpiry.Click  += (_, _) => DoSetExpiry();
-        menuUnlock.Click  += (_, _) => DoUnlock();
-        menuLock.Click    += (_, _) => DoLock();
-        menuEnable.Click  += (_, _) => DoEnable();
-        menuDisable.Click += (_, _) => DoDisable();
-
-        _grid.CellFormatting += OnGridCellFormatting;
-
-        // Ctrl+A / Ctrl+C / Ctrl+Shift+C
-        _grid.KeyDown += UiFactory.GridCopyHandler;
-
-        tab.Controls.AddRange(new Control[]
-        {
-            lblSn, txtSn, lblGn, txtGn,
-            btnSearch, _btnUnlock, _btnChangePwd,
-            _lblSelectedUser, _lblDisabledStatus, _grid
-        });
-
-        return tab;
+        _menuExpiry.Click  += (_, _) => DoSetExpiry();
+        _menuUnlock.Click  += (_, _) => DoUnlock();
+        _menuLock.Click    += (_, _) => DoLock();
+        _menuEnable.Click  += (_, _) => DoEnable();
+        _menuDisable.Click += (_, _) => DoDisable();
     }
 
     // -------------------------------------------------------
-    private static void DoSearch(string sn, string gn)
+    private void DoSearch(string sn, string gn)
     {
         if (sn.Length < 2)
         {
@@ -263,7 +178,7 @@ public static class Tab1_UserSearch
         Logger.Write($"Найдено: {results.Count} записей.", LogType.Summary);
     }
 
-    private static void DoUnlock()
+    private void DoUnlock()
     {
         if (_selectedRow == null) return;
         var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
@@ -286,7 +201,7 @@ public static class Tab1_UserSearch
         }
     }
 
-    private static void DoEnable()
+    private void DoEnable()
     {
         if (_selectedRow == null) return;
         var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
@@ -310,7 +225,7 @@ public static class Tab1_UserSearch
         }
     }
 
-    private static void DoSetExpiry()
+    private void DoSetExpiry()
     {
         if (_selectedRow == null) return;
         var sam         = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
@@ -323,7 +238,7 @@ public static class Tab1_UserSearch
         dlg.ShowDialog(_grid!.FindForm());
     }
 
-    private static void DoLock()
+    private void DoLock()
     {
         if (_selectedRow == null) return;
         var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
@@ -346,7 +261,7 @@ public static class Tab1_UserSearch
         }
     }
 
-    private static void DoDisable()
+    private void DoDisable()
     {
         if (_selectedRow == null) return;
         var sam    = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
@@ -370,7 +285,7 @@ public static class Tab1_UserSearch
         }
     }
 
-    private static void OnGridMouseDown(object? s, MouseEventArgs e)
+    private void OnGridMouseDown(object? s, MouseEventArgs e)
     {
         if (_grid == null || e.Button != MouseButtons.Right) return;
 
@@ -385,7 +300,7 @@ public static class Tab1_UserSearch
         }
     }
 
-    private static void OnSelectionChanged(object? s, EventArgs e)
+    private void OnSelectionChanged(object? s, EventArgs e)
     {
         if (_grid == null) return;
         DataGridViewRow? row = null;
@@ -423,7 +338,7 @@ public static class Tab1_UserSearch
         _btnChangePwd.BackColor  = Color.FromArgb(50, 100, 200);
     }
 
-    private static void OnGridCellFormatting(object? s, DataGridViewCellFormattingEventArgs e)
+    private void OnGridCellFormatting(object? s, DataGridViewCellFormattingEventArgs e)
     {
         if (_grid == null || e.RowIndex < 0) return;
         if (_grid.Columns[e.ColumnIndex].Name != "Enabled") return;

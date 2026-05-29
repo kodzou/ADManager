@@ -4,27 +4,27 @@ using ADManager.Helpers;
 
 namespace ADManager.Dialogs;
 
-public class ChangePasswordDialog : Form
+public partial class ChangePasswordDialog : Form
 {
     private readonly string _domain;
     private readonly string _samAccountName;
     private          string _userDN;
 
-    private readonly TextBox  _txtNewPwd;
-    private readonly TextBox  _txtConfirm;
-    private readonly Label    _lblMatch;
-    private readonly Label    _lblResult;
-    private readonly CheckBox _chkMustChange;
+    private TextBox      _txtNewPwd    = null!;
+    private TextBox      _txtConfirm   = null!;
+    private Label        _lblMatch     = null!;
+    private Label        _lblResult    = null!;
+    private CheckBox     _chkMustChange = null!;
+    private NumericUpDown _numLength   = null!;
+    private CheckBox     _chkMemo      = null!;
+    private CheckBox     _chkUpper     = null!;
+    private CheckBox     _chkLower     = null!;
+    private CheckBox     _chkDigits    = null!;
+    private CheckBox     _chkSymbols   = null!;
+    private CheckBox     _chkNoRepeat  = null!;
+    private Button[]     _genButtons   = null!;
 
-    // Генератор — правая панель
-    private readonly NumericUpDown _numLength;
-    private readonly CheckBox      _chkMemo;
-    private readonly CheckBox      _chkUpper;
-    private readonly CheckBox      _chkLower;
-    private readonly CheckBox      _chkDigits;
-    private readonly CheckBox      _chkSymbols;
-    private readonly CheckBox      _chkNoRepeat;
-    private readonly Button[]      _genButtons = new Button[5];
+    public ChangePasswordDialog() { InitializeComponent(); }
 
     public ChangePasswordDialog(string domain, string samAccountName)
     {

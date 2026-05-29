@@ -5,8 +5,10 @@ using ADManager.Helpers;
 
 namespace ADManager.Dialogs;
 
-public class UserDetailsDialog : Form
+public partial class UserDetailsDialog : Form
 {
+    public UserDetailsDialog() { InitializeComponent(); }
+
     public UserDetailsDialog(string domain, string samAccountName)
     {
         var props = new[]

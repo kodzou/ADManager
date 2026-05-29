@@ -4,73 +4,24 @@ using ADManager.Helpers;
 
 namespace ADManager.Tabs;
 
-public static class Tab3_Passwords
+public partial class Tab3_Passwords : UserControl
 {
-    private static DataGridView?  _grid;
-    private static RadioButton?   _rdExpired;
-    private static RadioButton?   _rdExpireSoon;
-    private static NumericUpDown? _numDays;
+    private DataGridView?  _grid;
+    private RadioButton?   _rdExpired;
+    private RadioButton?   _rdExpireSoon;
+    private NumericUpDown? _numDays;
 
-    public static TabPage Create()
+    public Tab3_Passwords()
     {
-        var tab = new TabPage("3. Пароли")
-        {
-            BackColor = Color.FromArgb(240, 242, 245)
-        };
+        InitializeComponent();
+        WireEvents();
+    }
 
-        var pan = new Panel
-        {
-            Location    = new Point(5, 5),
-            Size        = new Size(980, 44),
-            BackColor   = Color.FromArgb(230, 232, 238),
-            BorderStyle = BorderStyle.FixedSingle
-        };
-
-        _rdExpired = new RadioButton
-        {
-            Text     = "Уже истёкшие пароли",
-            Location = new Point(8, 12),
-            Size     = new Size(200, 22),
-            Checked  = true
-        };
-
-        _rdExpireSoon = new RadioButton
-        {
-            Text     = "Истекают в ближайшие",
-            Location = new Point(215, 12),
-            Size     = new Size(190, 22)
-        };
-
-        _numDays = new NumericUpDown
-        {
-            Location = new Point(410, 10),
-            Size     = new Size(60, 22),
-            Minimum  = 1,
-            Maximum  = 30,
-            Value    = 5
-        };
-
-        var lblDays = new Label { Text = "дней", Location = new Point(476, 13), AutoSize = true };
-
-        var btnSearch = UiFactory.MakeActionButton("Найти", 100);
-        btnSearch.Location = new Point(520, 9);
-        btnSearch.Click   += (_, _) => DoSearch();
-
-        var btnExport = UiFactory.MakeExportButton();
-        btnExport.Location = new Point(626, 9);
-        btnExport.Click   += (_, _) => CsvExporter.ExportLast("expired_passwords.csv");
-
-        pan.Controls.AddRange(new Control[]
-        {
-            _rdExpired, _rdExpireSoon, _numDays, lblDays, btnSearch, btnExport
-        });
-
-        _grid = UiFactory.MakeGrid();
-        _grid.Location = new Point(5, 58);
-        _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-        _grid.KeyDown += UiFactory.GridCopyHandler;
-
-        // Форматирование ячеек: DateTime → "dd.MM.yyyy HH:mm", TimeSpan → читаемый текст
+    private void WireEvents()
+    {
+        _btnSearch.Click += (_, _) => DoSearch();
+        _btnExport.Click += (_, _) => CsvExporter.ExportLast("expired_passwords.csv");
+        _grid.KeyDown    += UiFactory.GridCopyHandler;
         _grid.CellFormatting += (_, e) =>
         {
             if (e.Value is DateTime dt)
@@ -91,12 +42,9 @@ public static class Tab3_Passwords
                 e.FormattingApplied = true;
             }
         };
-
-        tab.Controls.AddRange(new Control[] { pan, _grid });
-        return tab;
     }
 
-    private static void DoSearch()
+    private void DoSearch()
     {
         Logger.Write("Поиск пользователей по паролям...", LogType.Info);
 

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11822.322
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ADManager", "ADManager.csproj", "{B0318F60-141F-14B8-E324-6A53B64B114A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B0318F60-141F-14B8-E324-6A53B64B114A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0318F60-141F-14B8-E324-6A53B64B114A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0318F60-141F-14B8-E324-6A53B64B114A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0318F60-141F-14B8-E324-6A53B64B114A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {129FEC9E-3EBB-464C-B38D-9F1206311D99}
+	EndGlobalSection
+EndGlobal

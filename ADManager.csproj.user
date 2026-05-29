@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup />
+  <ItemGroup>
+    <Compile Update="Dialogs\AdminCredentialsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Dialogs\ChangePasswordDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Dialogs\SetExpiryDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Dialogs\UserDetailsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Tabs\Tab1_UserSearch.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Tabs\Tab2_Groups.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Tabs\Tab3_Passwords.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Tabs\Tab4_Activity.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Tabs\Tab5_Duplicates.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Tabs\Tab6_SearchByList.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Tabs\Tab7_SearchByOU.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

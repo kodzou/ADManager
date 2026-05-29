@@ -4,61 +4,25 @@ using ADManager.Helpers;
 
 namespace ADManager.Tabs;
 
-public static class Tab5_Duplicates
+public partial class Tab5_Duplicates : UserControl
 {
-    private static DataGridView? _grid;
-    private static CheckBox?     _chkExact;
+    private DataGridView? _grid;
+    private CheckBox?     _chkExact;
 
-    public static TabPage Create()
+    public Tab5_Duplicates()
     {
-        var tab = new TabPage("5. Дубликаты")
-        {
-            BackColor = Color.FromArgb(240, 242, 245)
-        };
-
-        var pan = new Panel
-        {
-            Location    = new Point(5, 5),
-            Size        = new Size(980, 50),
-            BackColor   = Color.FromArgb(230, 232, 238),
-            BorderStyle = BorderStyle.FixedSingle
-        };
-
-        var lblDesc = new Label
-        {
-            Text      = "Поиск дублирующихся и похожих УЗ среди активных УЗ по всем доменам (по DisplayName и фамилии)",
-            Location  = new Point(8, 8),
-            Size      = new Size(680, 18),
-            ForeColor = Color.FromArgb(60, 70, 100)
-        };
-
-        _chkExact = new CheckBox
-        {
-            Text     = "Только точные совпадения",
-            Location = new Point(8, 27),
-            Size     = new Size(220, 20)
-        };
-
-        var btnFind = UiFactory.MakeActionButton("Найти дубликаты", 150);
-        btnFind.Location = new Point(700, 11);
-        btnFind.Click   += (_, _) => DoFind();
-
-        var btnExport = UiFactory.MakeExportButton();
-        btnExport.Location = new Point(856, 11);
-        btnExport.Click   += (_, _) => CsvExporter.ExportLast("duplicates.csv");
-
-        pan.Controls.AddRange(new Control[] { lblDesc, _chkExact, btnFind, btnExport });
-
-        _grid = UiFactory.MakeGrid();
-        _grid.Location = new Point(5, 60);
-        _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-        _grid.KeyDown += UiFactory.GridCopyHandler;
-
-        tab.Controls.AddRange(new Control[] { pan, _grid });
-        return tab;
+        InitializeComponent();
+        WireEvents();
     }
 
-    private static void DoFind()
+    private void WireEvents()
+    {
+        _btnFind.Click   += (_, _) => DoFind();
+        _btnExport.Click += (_, _) => CsvExporter.ExportLast("duplicates.csv");
+        _grid.KeyDown    += UiFactory.GridCopyHandler;
+    }
+
+    private void DoFind()
     {
         Logger.Write("Загрузка всех активных УЗ для поиска дубликатов...", LogType.Info);
 
@@ -93,7 +57,6 @@ public static class Tab5_Duplicates
         var exactKeys = new HashSet<string>();
         int groupNum  = 0;
 
-        // Точные совпадения по DisplayName
         var exactGroups = allUsers
             .Where(u => !string.IsNullOrEmpty(u.DisplayName))
             .GroupBy(u => u.DisplayName.ToLower().Trim())
@@ -110,7 +73,6 @@ public static class Tab5_Duplicates
             }
         }
 
-        // Похожие — по фамилии (SN) в разных доменах
         if (_chkExact?.Checked != true)
         {
             var snGroups = allUsers
@@ -137,10 +99,10 @@ public static class Tab5_Duplicates
 
     private record DupRow
     {
-        public string Группа        { get; init; } = "";
-        public string Тип           { get; init; } = "";
-        public string Домен         { get; init; } = "";
+        public string Группа         { get; init; } = "";
+        public string Тип            { get; init; } = "";
+        public string Домен          { get; init; } = "";
         public string SamAccountName { get; init; } = "";
-        public string DisplayName   { get; init; } = "";
+        public string DisplayName    { get; init; } = "";
     }
 }

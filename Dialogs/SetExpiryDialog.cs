@@ -4,14 +4,16 @@ using ADManager.Helpers;
 
 namespace ADManager.Dialogs;
 
-public class SetExpiryDialog : Form
+public partial class SetExpiryDialog : Form
 {
-    private readonly string      _domain;
-    private readonly string      _dn;
-    private readonly RadioButton _rdoNever;
-    private readonly RadioButton _rdoExpires;
-    private readonly DateTimePicker _dtp;
-    private readonly IWin32Window   _ownerWin;
+    private string         _domain   = "";
+    private string         _dn       = "";
+    private RadioButton    _rdoNever   = null!;
+    private RadioButton    _rdoExpires = null!;
+    private DateTimePicker _dtp        = null!;
+    private IWin32Window?  _ownerWin;
+
+    public SetExpiryDialog() { InitializeComponent(); }
 
     public SetExpiryDialog(string domain, string sam, string dn, string displayName, IWin32Window ownerWin)
     {
