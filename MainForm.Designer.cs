@@ -302,6 +302,7 @@ partial class MainForm
         Controls.Add(_logPanel);
         Controls.Add(_hintBar);
         Font = new Font("Segoe UI", 9.5F);
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? SystemIcons.Application;
         MinimumSize = new Size(900, 680);
         Name = "MainForm";
         StartPosition = FormStartPosition.CenterScreen;
