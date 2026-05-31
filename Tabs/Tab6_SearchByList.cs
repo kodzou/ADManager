@@ -17,6 +17,12 @@ public partial class Tab6_SearchByList : UserControl
     private List<FieldDef>               _fields      = new();
     private Dictionary<string, CheckBox> _fieldChecks = new();
 
+    private ContextMenuStrip?  _ctxMenu;
+    private ToolStripMenuItem? _menuBulkAdd;
+    private DataGridViewRow?   _ctxRow;
+
+    public Tab_BulkOperations? TabBulk { get; set; }
+
     private record FieldDef(string Name, string Label, bool Default, int Row);
 
     public Tab6_SearchByList()
@@ -83,7 +89,62 @@ public partial class Tab6_SearchByList : UserControl
             }
         };
         _btnClearList.Click += (_, _) => _txtFio!.Text = "";
-        _grid.KeyDown += UiFactory.GridCopyHandler;
+        _grid.KeyDown   += UiFactory.GridCopyHandler;
+        _grid.MouseDown += OnGridMouseDown;
+        _menuBulkAdd!.Click += (_, _) => DoAddToBulkOps();
+    }
+
+    private void OnGridMouseDown(object? s, MouseEventArgs e)
+    {
+        if (_grid == null || e.Button != MouseButtons.Right) return;
+        var hit = _grid.HitTest(e.X, e.Y);
+        if (hit.RowIndex < 0) { _ctxRow = null; return; }
+        _ctxRow = _grid.Rows[hit.RowIndex];
+        if (!_grid.Focused) _grid.Focus();
+        if (_grid.CurrentCell?.RowIndex != hit.RowIndex)
+            _grid.CurrentCell = _grid.Rows[hit.RowIndex].Cells[0];
+    }
+
+    private void DoAddToBulkOps()
+    {
+        if (_ctxRow == null || TabBulk == null) return;
+        if (_grid == null || !_grid.Columns.Contains("sAMAccountName"))
+        {
+            Logger.Write("Для добавления в Массовые операции необходимо выбрать поле «Логин» в полях выгрузки.", LogType.Warning);
+            return;
+        }
+
+        string sam = _ctxRow.Cells["sAMAccountName"].Value?.ToString() ?? "";
+        if (string.IsNullOrEmpty(sam)) return;
+
+        string domainShort = _ctxRow.Cells["Domain"].Value?.ToString() ?? "";
+        if (domainShort == "(не найдено)") return;
+
+        string domainFull = MainForm.Domains.FirstOrDefault(d =>
+            d.Replace(".local", "").Equals(domainShort, StringComparison.OrdinalIgnoreCase))
+            ?? (domainShort.Contains('.') ? domainShort : domainShort + ".local");
+
+        string displayName = _grid.Columns.Contains("displayName")
+            ? (_ctxRow.Cells["displayName"].Value?.ToString() ?? "")
+            : "";
+
+        var (dn, title, dept, mgr) = LdapHelper.FetchUserProps(domainFull, sam);
+
+        var entry = new BulkUserEntry
+        {
+            Domain      = domainShort,
+            DomainFull  = domainFull,
+            Login       = sam,
+            DisplayName = displayName,
+            Position    = title,
+            Department  = dept,
+            Manager     = mgr,
+            DN          = dn
+        };
+
+        TabBulk.AddUsers(new[] { entry });
+        _ctxRow.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 204);
+        Logger.Write($"Пользователь {sam} добавлен в Массовые операции.", LogType.Info);
     }
 
     private void DoFind()
@@ -169,6 +230,15 @@ public partial class Tab6_SearchByList : UserControl
 
         AppState.LastResults = results.Cast<object>().ToList();
         GridFiller.FillDynamic(_grid!, cols, results);
+
+        if (TabBulk != null && _grid!.Columns.Contains("sAMAccountName"))
+            foreach (DataGridViewRow row in _grid.Rows)
+            {
+                string d = row.Cells["Domain"].Value?.ToString() ?? "";
+                string s = row.Cells["sAMAccountName"].Value?.ToString() ?? "";
+                if (TabBulk.IsUserAdded(d, s))
+                    row.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 204);
+            }
 
         int foundCount    = results.Count(r => r.TryGetValue("Domain", out var d) && d != "(не найдено)");
         int notFoundCount = results.Count - foundCount;

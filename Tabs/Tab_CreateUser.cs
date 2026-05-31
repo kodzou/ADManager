@@ -48,6 +48,8 @@ public partial class Tab_CreateUser : UserControl
     private string _selectedOUDomain = "";
     private List<UserTemplate> _templates = new();
 
+    public Tab_BulkOperations? TabBulk { get; set; }
+
     private static readonly string TemplatesPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "ADManager", "create_user_templates.json");
@@ -200,7 +202,32 @@ public partial class Tab_CreateUser : UserControl
         const int CHKX = FX + FW + 8;         // 406
         const int BTNX = CHKX + 22 + 6;       // 434
 
-        int y = 6;
+        // ── Кнопка "Создать пользователя" и подсказка — выровнены с полем поиска OU (y=74 слева) ──
+        var btnCreate = new Button
+        {
+            Text      = "Создать пользователя",
+            Location  = new Point(8, 0),
+            Size      = new Size(200, 28),
+            BackColor = Color.FromArgb(50, 100, 200),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font      = new Font("Segoe UI", 9.5f, FontStyle.Bold)
+        };
+        btnCreate.FlatAppearance.BorderSize = 0;
+        btnCreate.Click += (_, _) => OnCreateUser();
+
+        var lblChkHint = new Label
+        {
+            Text      = "☑  — добавить в шаблон",
+            Location  = new Point(CHKX, 7),
+            AutoSize  = true,
+            ForeColor = Color.FromArgb(90, 100, 120),
+            Font      = new Font("Segoe UI", 8.5f)
+        };
+
+        p.Controls.AddRange(new Control[] { btnCreate, lblChkHint });
+
+        int y = 36;
 
         Label MkLabel(string text) => new Label
         {
@@ -268,7 +295,7 @@ public partial class Tab_CreateUser : UserControl
         // ── Пароль  [field][   ][btn] ─────────────────────────
         p.Controls.Add(MkLabel("Пароль:"));
         _txtPassword = MkField();
-        var btnRegen = MkBtn("Перегенерировать", 140);
+        var btnRegen = MkBtn("Перегенерировать", 180);
         p.Controls.AddRange(new Control[] { _txtPassword, btnRegen });
         y += RH;
 
@@ -342,73 +369,50 @@ public partial class Tab_CreateUser : UserControl
 
     private Panel BuildTemplatePanel()
     {
-        // "Создать пользователя" and dropdown share the same width (CW)
-        const int CW  = 200;  // combo / create-btn width
-        const int BH  = 26;   // row 1 control height
-        const int TH  = 24;   // textbox height
+        // Зона выбора шаблона — выровнена по высоте с дропдауном домена слева (y=24)
+        const int CW  = 200;
+        const int BH  = 26;
+        const int TH  = 24;
         const int GAP = 6;
+        const int ROW_Y = 24;
 
         var p = new Panel
         {
-            Height    = 76,
+            Height    = 74,
             BackColor = Color.FromArgb(228, 230, 236)
         };
 
-        // ── Row 1 (y=8): [combo(CW)] [delete] [name field] [save] ──
+        // ── [combo(CW)] [delete] [name field] [save]  (y=24) ──
         int x = 8;
 
         _cbTemplates = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Location      = new Point(x, 8),
+            Location      = new Point(x, ROW_Y),
             Size          = new Size(CW, BH),
             Font          = new Font("Segoe UI", 9f)
         };
         x += CW + GAP;
 
-        var btnDel = MakeDarkBtn("Удалить", new Point(x, 8), new Size(90, BH));
+        var btnDel = MakeDarkBtn("Удалить", new Point(x, ROW_Y), new Size(90, BH));
         x += 90 + GAP * 3;
 
         _txtTemplateName = new TextBox
         {
-            Location        = new Point(x, 9),
+            Location        = new Point(x, ROW_Y + 1),
             Size            = new Size(280, TH),
             PlaceholderText = "Название шаблона",
             Font            = new Font("Segoe UI", 9f)
         };
         x += 280 + GAP;
 
-        var btnSave = MakeDarkBtn("Создать", new Point(x, 8), new Size(90, BH));
-
-        // ── Row 2 (y=42): [Создать пользователя(CW)] ────────────────
-        var btnCreate = new Button
-        {
-            Text      = "Создать пользователя",
-            Location  = new Point(8, 42),
-            Size      = new Size(CW, 28),
-            BackColor = Color.FromArgb(50, 100, 200),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Font      = new Font("Segoe UI", 9.5f, FontStyle.Bold)
-        };
-        btnCreate.FlatAppearance.BorderSize = 0;
-
-        // Hint label on the same row as btnCreate, aligned to the checkbox column (x=406)
-        var lblChkHint = new Label
-        {
-            Text      = "☑  — добавить в шаблон",
-            Location  = new Point(406, 50),
-            AutoSize  = true,
-            ForeColor = Color.FromArgb(90, 100, 120),
-            Font      = new Font("Segoe UI", 8.5f)
-        };
+        var btnSave = MakeDarkBtn("Создать", new Point(x, ROW_Y), new Size(90, BH));
 
         p.Controls.AddRange(new Control[]
-            { _cbTemplates, btnDel, _txtTemplateName, btnSave, btnCreate, lblChkHint });
+            { _cbTemplates, btnDel, _txtTemplateName, btnSave });
 
-        btnSave.Click   += (_, _) => OnSaveTemplate();
-        btnDel.Click    += (_, _) => OnDeleteTemplate();
-        btnCreate.Click += (_, _) => OnCreateUser();
+        btnSave.Click += (_, _) => OnSaveTemplate();
+        btnDel.Click  += (_, _) => OnDeleteTemplate();
 
         return p;
     }
@@ -468,6 +472,33 @@ public partial class Tab_CreateUser : UserControl
                 _selectedOUDomain = _cbOuDomain.SelectedItem?.ToString() ?? "";
                 _txtSelOU.Text    = FormatOuPath(dn);
             }
+        };
+
+        // Контекстное меню OU-дерева
+        var ouCtxMenu    = new ContextMenuStrip();
+        var menuOUToBulk = new ToolStripMenuItem("➕  Добавить в Массовые операции");
+        ouCtxMenu.Items.Add(menuOUToBulk);
+        _ouTree.ContextMenuStrip = ouCtxMenu;
+
+        ouCtxMenu.Opening += (_, _) =>
+            menuOUToBulk.Enabled = _ouTree.SelectedNode?.Tag is string s && s.Length > 0;
+
+        _ouTree.MouseDown += (s, e) =>
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                var node = _ouTree.HitTest(e.X, e.Y).Node;
+                if (node != null) _ouTree.SelectedNode = node;
+            }
+        };
+
+        menuOUToBulk.Click += (_, _) =>
+        {
+            if (_ouTree.SelectedNode?.Tag is not string dn || string.IsNullOrEmpty(dn)) return;
+            string domain      = _cbOuDomain.SelectedItem?.ToString() ?? "";
+            string displayPath = FormatOuPath(dn);
+            TabBulk?.SetTargetOU(dn, domain, displayPath);
+            Logger.Write($"OU «{displayPath}» добавлено в Массовые операции.", LogType.Info);
         };
 
         _txtLogin.TextChanged += (_, _) => UpdateEmail();

@@ -9,7 +9,8 @@ public partial class Tab1_UserSearch : UserControl
 {
     private DataGridViewRow? _selectedRow;
 
-    public Tab2_Groups? Tab2 { get; set; }
+    public Tab2_Groups?       Tab2    { get; set; }
+    public Tab_BulkOperations? TabBulk { get; set; }
 
     public Tab1_UserSearch()
     {
@@ -23,8 +24,8 @@ public partial class Tab1_UserSearch : UserControl
         {
             if (_selectedRow == null)
             {
-                _menuExpiry.Enabled = _menuUnlock.Enabled = _menuLock.Enabled =
-                _menuEnable.Enabled = _menuDisable.Enabled = false;
+                _menuExpiry.Enabled = _menuBulkAdd.Enabled = _menuUnlock.Enabled =
+                _menuLock.Enabled   = _menuEnable.Enabled  = _menuDisable.Enabled = false;
                 return;
             }
             bool isDisabled = _selectedRow.Cells["Enabled"].Value?.ToString() == "Нет" ||
@@ -32,11 +33,12 @@ public partial class Tab1_UserSearch : UserControl
                                   .IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) >= 0;
             bool isLocked   = _selectedRow.Cells["LockedOut"].Value?.ToString() == "Да";
 
-            _menuExpiry.Enabled  = true;
-            _menuUnlock.Enabled  = isLocked;
-            _menuLock.Enabled    = !isDisabled && !isLocked;
-            _menuEnable.Enabled  = isDisabled;
-            _menuDisable.Enabled = !isDisabled;
+            _menuExpiry.Enabled   = true;
+            _menuBulkAdd.Enabled  = true;
+            _menuUnlock.Enabled   = isLocked;
+            _menuLock.Enabled     = !isDisabled && !isLocked;
+            _menuEnable.Enabled   = isDisabled;
+            _menuDisable.Enabled  = !isDisabled;
         };
 
         _grid!.MouseDown        += OnGridMouseDown;
@@ -91,6 +93,8 @@ public partial class Tab1_UserSearch : UserControl
         _menuLock.Click    += (_, _) => DoLock();
         _menuEnable.Click  += (_, _) => DoEnable();
         _menuDisable.Click += (_, _) => DoDisable();
+
+        _menuBulkAdd.Click += (_, _) => DoAddToBulkOps();
     }
 
     // -------------------------------------------------------
@@ -175,6 +179,16 @@ public partial class Tab1_UserSearch : UserControl
 
         GridFiller.Fill(_grid!, results);
         if (_grid!.Columns["DistinguishedName"] is { } dnCol) dnCol.Visible = false;
+
+        if (TabBulk != null)
+            foreach (DataGridViewRow row in _grid.Rows)
+            {
+                string d = row.Cells["Domain"].Value?.ToString() ?? "";
+                string s = row.Cells["SamAccountName"].Value?.ToString() ?? "";
+                if (TabBulk.IsUserAdded(d, s))
+                    row.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 204);
+            }
+
         Logger.Write($"Найдено: {results.Count} записей.", LogType.Summary);
     }
 
@@ -350,6 +364,35 @@ public partial class Tab1_UserSearch : UserControl
 
         if (isDisabled)
             e.CellStyle.BackColor = Color.FromArgb(255, 146, 92);
+    }
+
+    private void DoAddToBulkOps()
+    {
+        if (_selectedRow == null || TabBulk == null) return;
+
+        string sam         = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
+        string domainFull  = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
+        string displayName = _selectedRow.Cells["DisplayName"].Value?.ToString() ?? "";
+
+        if (string.IsNullOrEmpty(sam)) return;
+
+        var (dn, title, dept, mgr) = LdapHelper.FetchUserProps(domainFull, sam);
+
+        var entry = new BulkUserEntry
+        {
+            Domain      = domainFull.Replace(".local", ""),
+            DomainFull  = domainFull,
+            Login       = sam,
+            DisplayName = displayName,
+            Position    = title,
+            Department  = dept,
+            Manager     = mgr,
+            DN          = dn
+        };
+
+        TabBulk.AddUsers(new[] { entry });
+        _selectedRow.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 204);
+        Logger.Write($"Пользователь {sam} добавлен в Массовые операции.", LogType.Info);
     }
 
     // Модель строки результата

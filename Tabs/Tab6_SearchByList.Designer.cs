@@ -136,6 +136,11 @@ partial class Tab6_SearchByList
         _grid.Size     = new System.Drawing.Size(1190, 385);
         _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
 
+        _ctxMenu     = new ContextMenuStrip();
+        _menuBulkAdd = new ToolStripMenuItem("➕  Добавить в Массовые операции");
+        _ctxMenu.Items.Add(_menuBulkAdd);
+        _grid.ContextMenuStrip = _ctxMenu;
+
         Controls.AddRange(new Control[]
         {
             lblDomains, _clbDomains, lblFio, _txtFio,

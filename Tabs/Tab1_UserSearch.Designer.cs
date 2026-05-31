@@ -34,6 +34,7 @@ partial class Tab1_UserSearch
     private ToolStripMenuItem   _menuLock      = null!;
     private ToolStripMenuItem   _menuEnable    = null!;
     private ToolStripMenuItem   _menuDisable   = null!;
+    private ToolStripMenuItem   _menuBulkAdd   = null!;
 
     private void InitializeComponent()
     {
@@ -101,10 +102,11 @@ partial class Tab1_UserSearch
         _menuLock     = new ToolStripMenuItem("🔒  Заблокировать");
         _menuEnable   = new ToolStripMenuItem("✅  Включить");
         _menuDisable  = new ToolStripMenuItem("🚫  Отключить");
+        _menuBulkAdd  = new ToolStripMenuItem("➕  Добавить в Массовые операции");
         _ctxMenu.Items.AddRange(new ToolStripItem[]
         {
             _menuGroups, _menuDetails,
-            menuSep1, _menuExpiry,
+            menuSep1, _menuExpiry, _menuBulkAdd,
             menuSep2, _menuUnlock, _menuLock, _menuEnable, _menuDisable
         });
         _grid.ContextMenuStrip = _ctxMenu;

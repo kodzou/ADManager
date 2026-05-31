@@ -130,6 +130,27 @@ public static class LdapHelper
         }
     }
 
+    // Получает DN, должность, отдел и руководителя пользователя по sAMAccountName
+    public static (string DN, string Title, string Department, string Manager) FetchUserProps(
+        string domain, string sam)
+    {
+        try
+        {
+            var searcher = CreateSearcher(domain,
+                $"(&(objectClass=user)(sAMAccountName={sam}))",
+                new[] { "distinguishedName", "title", "department", "manager" });
+            var r = searcher?.FindOne();
+            if (r == null) return ("", "", "", "");
+            return (
+                GetProp(r, "distinguishedName"),
+                GetProp(r, "title"),
+                GetProp(r, "department"),
+                GetCNFromDN(GetProp(r, "manager"))
+            );
+        }
+        catch { return ("", "", "", ""); }
+    }
+
     // Проверяет, является ли исключение ошибкой доступа (в т.ч. через TargetInvocationException от ADSI Invoke)
     private static bool IsAccessDenied(Exception ex)
     {
