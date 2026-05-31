@@ -24,6 +24,7 @@ public partial class MainForm : Form
     public MainForm()
     {
         InitializeComponent();
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? SystemIcons.Application;
         _tab1.Tab2 = _tab2;
         _btnClearLog.Click += (_, _) => _logRtb.Clear();
         Logger.Init(_logRtb);

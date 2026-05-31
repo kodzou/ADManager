@@ -24,11 +24,13 @@ partial class MainForm
 
     private Tab1_UserSearch     _tab1 = null!;
     private Tab2_Groups         _tab2 = null!;
+    private Tab_CreateUser      _tabCreateUser = null!;
+    private Tab7_SearchByOU     _tab7 = null!;
+    private Tab6_SearchByList   _tab6 = null!;
+    private Tab_BulkOperations  _tabBulk = null!;
     private Tab3_Passwords      _tab3 = null!;
     private Tab4_Activity       _tab4 = null!;
     private Tab5_Duplicates     _tab5 = null!;
-    private Tab6_SearchByList   _tab6 = null!;
-    private Tab7_SearchByOU     _tab7 = null!;
 
     private void InitializeComponent()
     {
@@ -38,15 +40,19 @@ partial class MainForm
         tp2 = new TabPage();
         _tab2 = new Tab2_Groups();
         tp3 = new TabPage();
-        _tab3 = new Tab3_Passwords();
+        _tabCreateUser = new Tab_CreateUser();
         tp4 = new TabPage();
-        _tab4 = new Tab4_Activity();
-        tp5 = new TabPage();
-        _tab5 = new Tab5_Duplicates();
-        tp6 = new TabPage();
-        _tab6 = new Tab6_SearchByList();
-        tp7 = new TabPage();
         _tab7 = new Tab7_SearchByOU();
+        tp5 = new TabPage();
+        _tab6 = new Tab6_SearchByList();
+        tp6 = new TabPage();
+        _tabBulk = new Tab_BulkOperations();
+        tp7 = new TabPage();
+        _tab3 = new Tab3_Passwords();
+        tp8 = new TabPage();
+        _tab4 = new Tab4_Activity();
+        tp9 = new TabPage();
+        _tab5 = new Tab5_Duplicates();
         _logPanel = new Panel();
         _logRtb = new RichTextBox();
         logHeader = new Panel();
@@ -61,6 +67,8 @@ partial class MainForm
         tp5.SuspendLayout();
         tp6.SuspendLayout();
         tp7.SuspendLayout();
+        tp8.SuspendLayout();
+        tp9.SuspendLayout();
         _logPanel.SuspendLayout();
         logHeader.SuspendLayout();
         SuspendLayout();
@@ -74,6 +82,8 @@ partial class MainForm
         _tabControl.Controls.Add(tp5);
         _tabControl.Controls.Add(tp6);
         _tabControl.Controls.Add(tp7);
+        _tabControl.Controls.Add(tp8);
+        _tabControl.Controls.Add(tp9);
         _tabControl.Dock = DockStyle.Fill;
         _tabControl.ItemSize = new Size(140, 24);
         _tabControl.Location = new Point(0, 0);
@@ -81,9 +91,9 @@ partial class MainForm
         _tabControl.SelectedIndex = 0;
         _tabControl.Size = new Size(1244, 579);
         _tabControl.TabIndex = 0;
-        // 
-        // tp1
-        // 
+        //
+        // tp1 — Поиск пользователя
+        //
         tp1.BackColor = Color.FromArgb(240, 242, 245);
         tp1.Controls.Add(_tab1);
         tp1.Location = new Point(4, 28);
@@ -91,9 +101,9 @@ partial class MainForm
         tp1.Size = new Size(1236, 547);
         tp1.TabIndex = 0;
         tp1.Text = "1. Поиск пользователя";
-        // 
+        //
         // _tab1
-        // 
+        //
         _tab1.BackColor = Color.FromArgb(240, 242, 245);
         _tab1.Dock = DockStyle.Fill;
         _tab1.Location = new Point(0, 0);
@@ -101,9 +111,9 @@ partial class MainForm
         _tab1.Size = new Size(1236, 547);
         _tab1.Tab2 = null;
         _tab1.TabIndex = 0;
-        // 
-        // tp2
-        // 
+        //
+        // tp2 — Группы пользователя
+        //
         tp2.BackColor = Color.FromArgb(240, 242, 245);
         tp2.Controls.Add(_tab2);
         tp2.Location = new Point(4, 28);
@@ -111,110 +121,148 @@ partial class MainForm
         tp2.Size = new Size(192, 68);
         tp2.TabIndex = 1;
         tp2.Text = "2. Группы пользователя";
-        // 
+        //
         // _tab2
-        // 
+        //
         _tab2.BackColor = Color.FromArgb(240, 242, 245);
         _tab2.Dock = DockStyle.Fill;
         _tab2.Location = new Point(0, 0);
         _tab2.Name = "_tab2";
         _tab2.Size = new Size(192, 68);
         _tab2.TabIndex = 0;
-        // 
-        // tp3
-        // 
+        //
+        // tp3 — Создание пользователя
+        //
         tp3.BackColor = Color.FromArgb(240, 242, 245);
-        tp3.Controls.Add(_tab3);
+        tp3.Controls.Add(_tabCreateUser);
         tp3.Location = new Point(4, 28);
         tp3.Name = "tp3";
-        tp3.Size = new Size(192, 68);
+        tp3.Size = new Size(1236, 547);
         tp3.TabIndex = 2;
-        tp3.Text = "3. Пароли";
-        // 
-        // _tab3
-        // 
-        _tab3.BackColor = Color.FromArgb(240, 242, 245);
-        _tab3.Dock = DockStyle.Fill;
-        _tab3.Location = new Point(0, 0);
-        _tab3.Name = "_tab3";
-        _tab3.Size = new Size(192, 68);
-        _tab3.TabIndex = 0;
-        // 
-        // tp4
-        // 
+        tp3.Text = "3. Создание пользователя";
+        //
+        // _tabCreateUser
+        //
+        _tabCreateUser.BackColor = Color.FromArgb(240, 242, 245);
+        _tabCreateUser.Dock = DockStyle.Fill;
+        _tabCreateUser.Location = new Point(0, 0);
+        _tabCreateUser.Name = "_tabCreateUser";
+        _tabCreateUser.Size = new Size(1236, 547);
+        _tabCreateUser.TabIndex = 0;
+        //
+        // tp4 — Поиск по OU
+        //
         tp4.BackColor = Color.FromArgb(240, 242, 245);
-        tp4.Controls.Add(_tab4);
+        tp4.Controls.Add(_tab7);
         tp4.Location = new Point(4, 28);
         tp4.Name = "tp4";
         tp4.Size = new Size(192, 68);
         tp4.TabIndex = 3;
-        tp4.Text = "4. Активность";
-        // 
-        // _tab4
-        // 
-        _tab4.BackColor = Color.FromArgb(240, 242, 245);
-        _tab4.Dock = DockStyle.Fill;
-        _tab4.Location = new Point(0, 0);
-        _tab4.Name = "_tab4";
-        _tab4.Size = new Size(192, 68);
-        _tab4.TabIndex = 0;
-        // 
-        // tp5
-        // 
-        tp5.BackColor = Color.FromArgb(240, 242, 245);
-        tp5.Controls.Add(_tab5);
-        tp5.Location = new Point(4, 28);
-        tp5.Name = "tp5";
-        tp5.Size = new Size(192, 68);
-        tp5.TabIndex = 4;
-        tp5.Text = "5. Дубликаты";
-        // 
-        // _tab5
-        // 
-        _tab5.BackColor = Color.FromArgb(240, 242, 245);
-        _tab5.Dock = DockStyle.Fill;
-        _tab5.Location = new Point(0, 0);
-        _tab5.Name = "_tab5";
-        _tab5.Size = new Size(192, 68);
-        _tab5.TabIndex = 0;
-        // 
-        // tp6
-        // 
-        tp6.BackColor = Color.FromArgb(240, 242, 245);
-        tp6.Controls.Add(_tab6);
-        tp6.Location = new Point(4, 28);
-        tp6.Name = "tp6";
-        tp6.Size = new Size(192, 68);
-        tp6.TabIndex = 5;
-        tp6.Text = "6. Поиск по списку";
-        // 
-        // _tab6
-        // 
-        _tab6.BackColor = Color.FromArgb(240, 242, 245);
-        _tab6.Dock = DockStyle.Fill;
-        _tab6.Location = new Point(0, 0);
-        _tab6.Name = "_tab6";
-        _tab6.Size = new Size(192, 68);
-        _tab6.TabIndex = 0;
-        // 
-        // tp7
-        // 
-        tp7.BackColor = Color.FromArgb(240, 242, 245);
-        tp7.Controls.Add(_tab7);
-        tp7.Location = new Point(4, 28);
-        tp7.Name = "tp7";
-        tp7.Size = new Size(192, 68);
-        tp7.TabIndex = 6;
-        tp7.Text = "7. Поиск по OU";
-        // 
+        tp4.Text = "4. Поиск по OU";
+        //
         // _tab7
-        // 
+        //
         _tab7.BackColor = Color.FromArgb(240, 242, 245);
         _tab7.Dock = DockStyle.Fill;
         _tab7.Location = new Point(0, 0);
         _tab7.Name = "_tab7";
         _tab7.Size = new Size(192, 68);
         _tab7.TabIndex = 0;
+        //
+        // tp5 — Поиск по списку
+        //
+        tp5.BackColor = Color.FromArgb(240, 242, 245);
+        tp5.Controls.Add(_tab6);
+        tp5.Location = new Point(4, 28);
+        tp5.Name = "tp5";
+        tp5.Size = new Size(192, 68);
+        tp5.TabIndex = 4;
+        tp5.Text = "5. Поиск по списку";
+        //
+        // _tab6
+        //
+        _tab6.BackColor = Color.FromArgb(240, 242, 245);
+        _tab6.Dock = DockStyle.Fill;
+        _tab6.Location = new Point(0, 0);
+        _tab6.Name = "_tab6";
+        _tab6.Size = new Size(192, 68);
+        _tab6.TabIndex = 0;
+        //
+        // tp6 — Массовые операции
+        //
+        tp6.BackColor = Color.FromArgb(240, 242, 245);
+        tp6.Controls.Add(_tabBulk);
+        tp6.Location = new Point(4, 28);
+        tp6.Name = "tp6";
+        tp6.Size = new Size(1236, 547);
+        tp6.TabIndex = 5;
+        tp6.Text = "6. Массовые операции";
+        //
+        // _tabBulk
+        //
+        _tabBulk.BackColor = Color.FromArgb(240, 242, 245);
+        _tabBulk.Dock = DockStyle.Fill;
+        _tabBulk.Location = new Point(0, 0);
+        _tabBulk.Name = "_tabBulk";
+        _tabBulk.Size = new Size(1236, 547);
+        _tabBulk.TabIndex = 0;
+        //
+        // tp7 — Пароли
+        //
+        tp7.BackColor = Color.FromArgb(240, 242, 245);
+        tp7.Controls.Add(_tab3);
+        tp7.Location = new Point(4, 28);
+        tp7.Name = "tp7";
+        tp7.Size = new Size(192, 68);
+        tp7.TabIndex = 6;
+        tp7.Text = "7. Пароли";
+        //
+        // _tab3
+        //
+        _tab3.BackColor = Color.FromArgb(240, 242, 245);
+        _tab3.Dock = DockStyle.Fill;
+        _tab3.Location = new Point(0, 0);
+        _tab3.Name = "_tab3";
+        _tab3.Size = new Size(192, 68);
+        _tab3.TabIndex = 0;
+        //
+        // tp8 — Активность
+        //
+        tp8.BackColor = Color.FromArgb(240, 242, 245);
+        tp8.Controls.Add(_tab4);
+        tp8.Location = new Point(4, 28);
+        tp8.Name = "tp8";
+        tp8.Size = new Size(192, 68);
+        tp8.TabIndex = 7;
+        tp8.Text = "8. Активность";
+        //
+        // _tab4
+        //
+        _tab4.BackColor = Color.FromArgb(240, 242, 245);
+        _tab4.Dock = DockStyle.Fill;
+        _tab4.Location = new Point(0, 0);
+        _tab4.Name = "_tab4";
+        _tab4.Size = new Size(192, 68);
+        _tab4.TabIndex = 0;
+        //
+        // tp9 — Дубликаты
+        //
+        tp9.BackColor = Color.FromArgb(240, 242, 245);
+        tp9.Controls.Add(_tab5);
+        tp9.Location = new Point(4, 28);
+        tp9.Name = "tp9";
+        tp9.Size = new Size(192, 68);
+        tp9.TabIndex = 8;
+        tp9.Text = "9. Дубликаты";
+        //
+        // _tab5
+        //
+        _tab5.BackColor = Color.FromArgb(240, 242, 245);
+        _tab5.Dock = DockStyle.Fill;
+        _tab5.Location = new Point(0, 0);
+        _tab5.Name = "_tab5";
+        _tab5.Size = new Size(192, 68);
+        _tab5.TabIndex = 0;
         // 
         // _logPanel
         // 
@@ -302,7 +350,6 @@ partial class MainForm
         Controls.Add(_logPanel);
         Controls.Add(_hintBar);
         Font = new Font("Segoe UI", 9.5F);
-        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? SystemIcons.Application;
         MinimumSize = new Size(900, 680);
         Name = "MainForm";
         StartPosition = FormStartPosition.CenterScreen;
@@ -315,6 +362,8 @@ partial class MainForm
         tp5.ResumeLayout(false);
         tp6.ResumeLayout(false);
         tp7.ResumeLayout(false);
+        tp8.ResumeLayout(false);
+        tp9.ResumeLayout(false);
         _logPanel.ResumeLayout(false);
         logHeader.ResumeLayout(false);
         logHeader.PerformLayout();
@@ -328,6 +377,8 @@ partial class MainForm
     private TabPage tp5;
     private TabPage tp6;
     private TabPage tp7;
+    private TabPage tp8;
+    private TabPage tp9;
     private Panel logHeader;
     private Label lblLogTitle;
 }
