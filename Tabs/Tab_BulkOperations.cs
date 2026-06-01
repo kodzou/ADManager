@@ -130,6 +130,7 @@ public partial class Tab_BulkOperations : UserControl
         foreach (var u in _users)
             _grid.Rows.Add(u.Domain, u.Login, u.DisplayName,
                            u.Position, u.Department, u.Manager, ouDisplay, u.DN);
+        _lblUserCount.Text = _users.Count > 0 ? $"Пользователей: {_users.Count}" : "";
         UpdateColumnVisibility();
     }
 

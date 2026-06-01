@@ -31,10 +31,11 @@ partial class Tab_BulkOperations
     private Label    _lblNote        = null!;
 
     // Buttons zone
-    private Button   _btnDelete  = null!;
-    private Button   _btnRun     = null!;
-    private CheckBox _chkShowAll = null!;
-    private Button   _btnInfo    = null!;
+    private Button   _btnDelete    = null!;
+    private Button   _btnRun       = null!;
+    private CheckBox _chkShowAll   = null!;
+    private Button   _btnInfo      = null!;
+    private Label    _lblUserCount = null!;
 
     // Grid
     private DataGridView _grid = null!;
@@ -48,10 +49,9 @@ partial class Tab_BulkOperations
         // ── Fields panel ─────────────────────────────────────────
         var pnlFields = new Panel
         {
-            Location  = new Point(0, 0),
-            Size      = new Size(1600, 108),
-            BackColor = Color.FromArgb(228, 230, 236),
-            Anchor    = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            Dock      = DockStyle.Top,
+            Height    = 110,
+            BackColor = Color.FromArgb(228, 230, 236)
         };
 
         // Row 1 (y=10): Position, Department, Manager, Find
@@ -182,10 +182,9 @@ partial class Tab_BulkOperations
         // ── Buttons row ───────────────────────────────────────────
         var pnlButtons = new Panel
         {
-            Location  = new Point(0, 110),
-            Size      = new Size(1600, 36),
-            BackColor = Color.FromArgb(240, 242, 245),
-            Anchor    = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            Dock      = DockStyle.Top,
+            Height    = 40,
+            BackColor = Color.FromArgb(240, 242, 245)
         };
 
         _btnDelete = new Button
@@ -222,6 +221,15 @@ partial class Tab_BulkOperations
             Font     = new Font("Segoe UI", 9f)
         };
 
+        _lblUserCount = new Label
+        {
+            Text      = "",
+            Location  = new Point(480, 11),
+            AutoSize  = true,
+            ForeColor = Color.FromArgb(50, 100, 200),
+            Font      = new Font("Segoe UI", 9f, FontStyle.Bold)
+        };
+
         _btnInfo = new Button
         {
             Text      = "ⓘ",
@@ -237,14 +245,12 @@ partial class Tab_BulkOperations
 
         pnlButtons.Controls.AddRange(new Control[]
         {
-            _btnDelete, _btnRun, _chkShowAll, _btnInfo
+            _btnDelete, _btnRun, _chkShowAll, _lblUserCount, _btnInfo
         });
 
         // ── Grid ──────────────────────────────────────────────────
         _grid = UiFactory.MakeGrid();
-        _grid.Location       = new Point(5, 150);
-        _grid.Size           = new Size(1226, 390);
-        _grid.Anchor         = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+        _grid.Dock           = DockStyle.Fill;
         _grid.SelectionMode  = DataGridViewSelectionMode.FullRowSelect;
         _grid.MultiSelect    = true;
 
@@ -257,7 +263,9 @@ partial class Tab_BulkOperations
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "OUTarget",    HeaderText = "OU назначения",  Width = 260, Visible = false });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "DN",          HeaderText = "DN", Visible = false, Width = 10 });
 
-        Controls.AddRange(new Control[] { pnlFields, pnlButtons, _grid });
+        Controls.Add(_grid);
+        Controls.Add(pnlButtons);
+        Controls.Add(pnlFields);
 
         ResumeLayout(false);
     }
