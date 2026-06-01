@@ -157,25 +157,26 @@ public static class LdapHelper
         }
     }
 
-    // Получает DN, должность, отдел и руководителя пользователя по sAMAccountName
-    public static (string DN, string Title, string Department, string Manager) FetchUserProps(
+    // Получает DN, должность, отдел, руководителя и статус активности пользователя
+    public static (string DN, string Title, string Department, string Manager, bool IsEnabled) FetchUserProps(
         string domain, string sam)
     {
         try
         {
             var searcher = CreateSearcher(domain,
                 $"(&(objectClass=user)(sAMAccountName={sam}))",
-                new[] { "distinguishedName", "title", "department", "manager" });
+                new[] { "distinguishedName", "title", "department", "manager", "userAccountControl" });
             var r = searcher?.FindOne();
-            if (r == null) return ("", "", "", "");
-            return (
-                GetProp(r, "distinguishedName"),
-                GetProp(r, "title"),
-                GetProp(r, "department"),
-                GetCNFromDN(GetProp(r, "manager"))
-            );
+            if (r == null) return ("", "", "", "", false);
+
+            string dn  = GetProp(r, "distinguishedName");
+            int    uac = (int)GetPropLong(r, "userAccountControl");
+            bool enabled = (uac & 2) == 0 &&
+                           dn.IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) < 0;
+
+            return (dn, GetProp(r, "title"), GetProp(r, "department"), GetCNFromDN(GetProp(r, "manager")), enabled);
         }
-        catch { return ("", "", "", ""); }
+        catch { return ("", "", "", "", false); }
     }
 
     // Проверяет, является ли исключение ошибкой доступа (в т.ч. через TargetInvocationException от ADSI Invoke)

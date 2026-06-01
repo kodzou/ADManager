@@ -133,7 +133,12 @@ public partial class Tab7_SearchByOU : UserControl
                 ? (row.Cells["displayName"].Value?.ToString() ?? "")
                 : "";
 
-            var (dn, title, dept, mgr) = LdapHelper.FetchUserProps(domainFull, sam);
+            var (dn, title, dept, mgr, isEnabled) = LdapHelper.FetchUserProps(domainFull, sam);
+            if (!isEnabled)
+            {
+                Logger.Write($"Пропущен {sam}: учётная запись отключена.", LogType.Warning);
+                continue;
+            }
 
             entries.Add(new BulkUserEntry
             {

@@ -382,7 +382,16 @@ public partial class Tab1_UserSearch : UserControl
             string displayName = row.Cells["DisplayName"].Value?.ToString() ?? "";
             if (string.IsNullOrEmpty(sam)) continue;
 
-            var (dn, title, dept, mgr) = LdapHelper.FetchUserProps(domainFull, sam);
+            bool isDisabled = row.Cells["Enabled"].Value?.ToString() == "Нет";
+            bool inDisabledOU = (row.Cells["DistinguishedName"].Value?.ToString() ?? "")
+                .IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (isDisabled || inDisabledOU)
+            {
+                Logger.Write($"Пропущен {sam}: учётная запись отключена.", LogType.Warning);
+                continue;
+            }
+
+            var (dn, title, dept, mgr, _) = LdapHelper.FetchUserProps(domainFull, sam);
 
             entries.Add(new BulkUserEntry
             {

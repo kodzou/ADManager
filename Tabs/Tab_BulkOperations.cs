@@ -281,7 +281,9 @@ public partial class Tab_BulkOperations : UserControl
         string managerName = _txtManager.Text;
         Logger.Write($"Поиск подчинённых руководителя: {managerName}...", LogType.Info);
 
-        string filter = $"(&(objectClass=user)(!(objectClass=computer))(manager={_managerDN}))";
+        string filter = $"(&(objectClass=user)(!(objectClass=computer))" +
+                        $"(!(userAccountControl:1.2.840.113556.1.4.803:=2))" +
+                        $"(manager={_managerDN}))";
         string[] props = { "sAMAccountName", "displayName", "distinguishedName", "title", "department", "manager" };
 
         int found = 0;
@@ -297,6 +299,10 @@ public partial class Tab_BulkOperations : UserControl
                     string sam = LdapHelper.GetProp(r, "sAMAccountName");
                     if (string.IsNullOrEmpty(sam)) continue;
 
+                    string subDN = LdapHelper.GetProp(r, "distinguishedName");
+                    if (subDN.IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) >= 0)
+                        continue;
+
                     AddUsers(new[]
                     {
                         new BulkUserEntry
@@ -308,7 +314,7 @@ public partial class Tab_BulkOperations : UserControl
                             Position    = LdapHelper.GetProp(r, "title"),
                             Department  = LdapHelper.GetProp(r, "department"),
                             Manager     = LdapHelper.GetCNFromDN(LdapHelper.GetProp(r, "manager")),
-                            DN          = LdapHelper.GetProp(r, "distinguishedName")
+                            DN          = subDN
                         }
                     });
                     found++;
