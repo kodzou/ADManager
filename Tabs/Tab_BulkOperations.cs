@@ -75,7 +75,7 @@ public partial class Tab_BulkOperations : UserControl
                 _txtManager.Text = dlg.SelectedDisplay;
                 _btnFindSubordinates.Enabled   = !string.IsNullOrEmpty(_managerDN);
                 _btnFindSubordinates.BackColor = _btnFindSubordinates.Enabled
-                    ? Color.FromArgb(50, 100, 200)
+                    ? Color.FromArgb(50, 55, 70)
                     : Color.FromArgb(120, 125, 140);
             }
         };
