@@ -132,22 +132,27 @@ partial class Tab6_SearchByList
         _lblCount.Font      = new Font("Segoe UI", 9f, FontStyle.Bold);
 
         _grid = UiFactory.MakeGrid();
-        _grid.Location = new Point(5, 290);
-        _grid.Size     = new System.Drawing.Size(1190, 385);
-        _grid.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+        _grid.Dock = DockStyle.Fill;
 
         _ctxMenu     = new ContextMenuStrip();
         _menuBulkAdd = new ToolStripMenuItem("➕  Добавить в Массовые операции");
         _ctxMenu.Items.Add(_menuBulkAdd);
         _grid.ContextMenuStrip = _ctxMenu;
 
-        Controls.AddRange(new Control[]
+        var topPanel = new Panel();
+        topPanel.Dock      = DockStyle.Top;
+        topPanel.Height    = 290;
+        topPanel.BackColor = Color.FromArgb(240, 242, 245);
+        topPanel.Controls.AddRange(new Control[]
         {
             lblDomains, _clbDomains, lblFio, _txtFio,
             _btnLoadFile, _btnClearList,
             panFilters, panFields,
-            _btnFind, _btnExport, _btnClear, _lblCount, _grid
+            _btnFind, _btnExport, _btnClear, _lblCount
         });
+
+        Controls.Add(_grid);
+        Controls.Add(topPanel);
 
         ResumeLayout(false);
     }

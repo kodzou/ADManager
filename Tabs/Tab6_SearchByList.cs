@@ -91,6 +91,10 @@ public partial class Tab6_SearchByList : UserControl
         _btnClearList.Click += (_, _) => _txtFio!.Text = "";
         _grid.KeyDown   += UiFactory.GridCopyHandler;
         _grid.MouseDown += OnGridMouseDown;
+        _ctxMenu!.Opening += (_, _) =>
+        {
+            _menuBulkAdd!.Enabled = _grid?.SelectedCells.Count > 0;
+        };
         _menuBulkAdd!.Click += (_, _) => DoAddToBulkOps();
     }
 
@@ -101,50 +105,63 @@ public partial class Tab6_SearchByList : UserControl
         if (hit.RowIndex < 0) { _ctxRow = null; return; }
         _ctxRow = _grid.Rows[hit.RowIndex];
         if (!_grid.Focused) _grid.Focus();
-        if (_grid.CurrentCell?.RowIndex != hit.RowIndex)
-            _grid.CurrentCell = _grid.Rows[hit.RowIndex].Cells[0];
     }
 
     private void DoAddToBulkOps()
     {
-        if (_ctxRow == null || TabBulk == null) return;
+        if (TabBulk == null) return;
         if (_grid == null || !_grid.Columns.Contains("sAMAccountName"))
         {
             Logger.Write("Для добавления в Массовые операции необходимо выбрать поле «Логин» в полях выгрузки.", LogType.Warning);
             return;
         }
 
-        string sam = _ctxRow.Cells["sAMAccountName"].Value?.ToString() ?? "";
-        if (string.IsNullOrEmpty(sam)) return;
+        var uniqueRows = _grid.SelectedCells
+            .Cast<DataGridViewCell>()
+            .Select(c => c.RowIndex)
+            .Distinct()
+            .Select(i => _grid.Rows[i])
+            .ToList();
 
-        string domainShort = _ctxRow.Cells["Domain"].Value?.ToString() ?? "";
-        if (domainShort == "(не найдено)") return;
+        if (uniqueRows.Count == 0) return;
 
-        string domainFull = MainForm.Domains.FirstOrDefault(d =>
-            d.Replace(".local", "").Equals(domainShort, StringComparison.OrdinalIgnoreCase))
-            ?? (domainShort.Contains('.') ? domainShort : domainShort + ".local");
-
-        string displayName = _grid.Columns.Contains("displayName")
-            ? (_ctxRow.Cells["displayName"].Value?.ToString() ?? "")
-            : "";
-
-        var (dn, title, dept, mgr) = LdapHelper.FetchUserProps(domainFull, sam);
-
-        var entry = new BulkUserEntry
+        var entries = new List<BulkUserEntry>();
+        foreach (var row in uniqueRows)
         {
-            Domain      = domainShort,
-            DomainFull  = domainFull,
-            Login       = sam,
-            DisplayName = displayName,
-            Position    = title,
-            Department  = dept,
-            Manager     = mgr,
-            DN          = dn
-        };
+            string sam = row.Cells["sAMAccountName"].Value?.ToString() ?? "";
+            if (string.IsNullOrEmpty(sam)) continue;
 
-        TabBulk.AddUsers(new[] { entry });
-        _ctxRow.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 204);
-        Logger.Write($"Пользователь {sam} добавлен в Массовые операции.", LogType.Info);
+            string domainShort = row.Cells["Domain"].Value?.ToString() ?? "";
+            if (domainShort == "(не найдено)") continue;
+
+            string domainFull = MainForm.Domains.FirstOrDefault(d =>
+                d.Replace(".local", "").Equals(domainShort, StringComparison.OrdinalIgnoreCase))
+                ?? (domainShort.Contains('.') ? domainShort : domainShort + ".local");
+
+            string displayName = _grid.Columns.Contains("displayName")
+                ? (row.Cells["displayName"].Value?.ToString() ?? "")
+                : "";
+
+            var (dn, title, dept, mgr) = LdapHelper.FetchUserProps(domainFull, sam);
+
+            entries.Add(new BulkUserEntry
+            {
+                Domain      = domainShort,
+                DomainFull  = domainFull,
+                Login       = sam,
+                DisplayName = displayName,
+                Position    = title,
+                Department  = dept,
+                Manager     = mgr,
+                DN          = dn
+            });
+        }
+
+        if (entries.Count == 0) return;
+        TabBulk.AddUsers(entries);
+        foreach (var row in uniqueRows)
+            row.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 204);
+        Logger.Write($"Добавлено в Массовые операции: {entries.Count} пользователей.", LogType.Info);
     }
 
     private void DoFind()

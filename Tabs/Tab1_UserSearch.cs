@@ -22,17 +22,21 @@ public partial class Tab1_UserSearch : UserControl
     {
         _ctxMenu.Opening += (_, _) =>
         {
-            if (_selectedRow == null)
+            bool hasSelection = _selectedRow != null && (_grid?.SelectedCells.Count ?? 0) > 0;
+            if (!hasSelection)
             {
+                _menuGroups.Enabled = _menuDetails.Enabled =
                 _menuExpiry.Enabled = _menuBulkAdd.Enabled = _menuUnlock.Enabled =
                 _menuLock.Enabled   = _menuEnable.Enabled  = _menuDisable.Enabled = false;
                 return;
             }
-            bool isDisabled = _selectedRow.Cells["Enabled"].Value?.ToString() == "Нет" ||
+            bool isDisabled = _selectedRow!.Cells["Enabled"].Value?.ToString() == "Нет" ||
                               (_selectedRow.Cells["DistinguishedName"].Value?.ToString() ?? "")
                                   .IndexOf("OU=DisabledAccounts", StringComparison.OrdinalIgnoreCase) >= 0;
             bool isLocked   = _selectedRow.Cells["LockedOut"].Value?.ToString() == "Да";
 
+            _menuGroups.Enabled   = true;
+            _menuDetails.Enabled  = true;
             _menuExpiry.Enabled   = true;
             _menuBulkAdd.Enabled  = true;
             _menuUnlock.Enabled   = isLocked;
@@ -302,16 +306,7 @@ public partial class Tab1_UserSearch : UserControl
     private void OnGridMouseDown(object? s, MouseEventArgs e)
     {
         if (_grid == null || e.Button != MouseButtons.Right) return;
-
-        var hit = _grid.HitTest(e.X, e.Y);
-        if (hit.RowIndex < 0) return;
-
         if (!_grid.Focused) _grid.Focus();
-
-        if (_grid.CurrentCell?.RowIndex != hit.RowIndex)
-        {
-            _grid.CurrentCell = _grid.Rows[hit.RowIndex].Cells[0];
-        }
     }
 
     private void OnSelectionChanged(object? s, EventArgs e)
@@ -368,31 +363,45 @@ public partial class Tab1_UserSearch : UserControl
 
     private void DoAddToBulkOps()
     {
-        if (_selectedRow == null || TabBulk == null) return;
+        if (TabBulk == null || _grid == null) return;
 
-        string sam         = _selectedRow.Cells["SamAccountName"].Value?.ToString() ?? "";
-        string domainFull  = _selectedRow.Cells["Domain"].Value?.ToString() ?? "";
-        string displayName = _selectedRow.Cells["DisplayName"].Value?.ToString() ?? "";
+        var uniqueRows = _grid.SelectedCells
+            .Cast<DataGridViewCell>()
+            .Select(c => c.RowIndex)
+            .Distinct()
+            .Select(i => _grid.Rows[i])
+            .ToList();
 
-        if (string.IsNullOrEmpty(sam)) return;
+        if (uniqueRows.Count == 0) return;
 
-        var (dn, title, dept, mgr) = LdapHelper.FetchUserProps(domainFull, sam);
-
-        var entry = new BulkUserEntry
+        var entries = new List<BulkUserEntry>();
+        foreach (var row in uniqueRows)
         {
-            Domain      = domainFull.Replace(".local", ""),
-            DomainFull  = domainFull,
-            Login       = sam,
-            DisplayName = displayName,
-            Position    = title,
-            Department  = dept,
-            Manager     = mgr,
-            DN          = dn
-        };
+            string sam        = row.Cells["SamAccountName"].Value?.ToString() ?? "";
+            string domainFull = row.Cells["Domain"].Value?.ToString() ?? "";
+            string displayName = row.Cells["DisplayName"].Value?.ToString() ?? "";
+            if (string.IsNullOrEmpty(sam)) continue;
 
-        TabBulk.AddUsers(new[] { entry });
-        _selectedRow.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 204);
-        Logger.Write($"Пользователь {sam} добавлен в Массовые операции.", LogType.Info);
+            var (dn, title, dept, mgr) = LdapHelper.FetchUserProps(domainFull, sam);
+
+            entries.Add(new BulkUserEntry
+            {
+                Domain      = domainFull.Replace(".local", ""),
+                DomainFull  = domainFull,
+                Login       = sam,
+                DisplayName = displayName,
+                Position    = title,
+                Department  = dept,
+                Manager     = mgr,
+                DN          = dn
+            });
+        }
+
+        if (entries.Count == 0) return;
+        TabBulk.AddUsers(entries);
+        foreach (var row in uniqueRows)
+            row.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 204);
+        Logger.Write($"Добавлено в Массовые операции: {entries.Count} пользователей.", LogType.Info);
     }
 
     // Модель строки результата
