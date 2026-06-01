@@ -23,7 +23,8 @@ partial class Tab_BulkOperations
     private TextBox  _txtDepartment  = null!;
     private CheckBox _chkManager     = null!;
     private TextBox  _txtManager     = null!;
-    private Button   _btnFindManager = null!;
+    private Button   _btnFindManager        = null!;
+    private Button   _btnFindSubordinates   = null!;
     private Label    _lblOU          = null!;
     private CheckBox _chkOU          = null!;
     private TextBox  _txtOU          = null!;
@@ -113,6 +114,19 @@ partial class Tab_BulkOperations
         };
         _btnFindManager.FlatAppearance.BorderSize = 0;
 
+        _btnFindSubordinates = new Button
+        {
+            Text      = "Найти подчинённых",
+            Location  = new Point(912, 10),
+            Size      = new Size(160, 24),
+            BackColor = Color.FromArgb(120, 125, 140),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+            Enabled   = false
+        };
+        _btnFindSubordinates.FlatAppearance.BorderSize = 0;
+
         // Row 2 label (y=40): label above OU field
         _lblOU = new Label
         {
@@ -176,7 +190,8 @@ partial class Tab_BulkOperations
             _chkDepartment, _txtDepartment,
             _chkManager, _txtManager, _btnFindManager,
             _lblOU, _chkOU, _txtOU, _btnOUInfo,
-            _lblNote, pnlFieldsBorder
+            _lblNote, pnlFieldsBorder,
+            _btnFindSubordinates
         });
 
         // ── Buttons row ───────────────────────────────────────────

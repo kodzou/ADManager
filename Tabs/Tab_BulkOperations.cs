@@ -73,8 +73,14 @@ public partial class Tab_BulkOperations : UserControl
             {
                 _managerDN       = dlg.SelectedDN;
                 _txtManager.Text = dlg.SelectedDisplay;
+                _btnFindSubordinates.Enabled   = !string.IsNullOrEmpty(_managerDN);
+                _btnFindSubordinates.BackColor = _btnFindSubordinates.Enabled
+                    ? Color.FromArgb(50, 100, 200)
+                    : Color.FromArgb(120, 125, 140);
             }
         };
+
+        _btnFindSubordinates.Click += (_, _) => DoFindSubordinates();
 
         _btnOUInfo.Click += (_, _) =>
             MessageBox.Show(
@@ -266,6 +272,55 @@ public partial class Tab_BulkOperations : UserControl
         if (skip > 0) summary += $", пропущено: {skip}";
         summary += ".";
         Logger.Write(summary, fail == 0 ? LogType.OK : LogType.Error);
+    }
+
+    private void DoFindSubordinates()
+    {
+        if (string.IsNullOrEmpty(_managerDN)) return;
+
+        string managerName = _txtManager.Text;
+        Logger.Write($"Поиск подчинённых руководителя: {managerName}...", LogType.Info);
+
+        string filter = $"(&(objectClass=user)(!(objectClass=computer))(manager={_managerDN}))";
+        string[] props = { "sAMAccountName", "displayName", "distinguishedName", "title", "department", "manager" };
+
+        int found = 0;
+        foreach (var domain in MainForm.Domains)
+        {
+            try
+            {
+                var searcher = LdapHelper.CreateSearcher(domain, filter, props);
+                if (searcher == null) continue;
+
+                foreach (System.DirectoryServices.SearchResult r in searcher.FindAll())
+                {
+                    string sam = LdapHelper.GetProp(r, "sAMAccountName");
+                    if (string.IsNullOrEmpty(sam)) continue;
+
+                    AddUsers(new[]
+                    {
+                        new BulkUserEntry
+                        {
+                            Domain      = domain.Replace(".local", ""),
+                            DomainFull  = domain,
+                            Login       = sam,
+                            DisplayName = LdapHelper.GetProp(r, "displayName"),
+                            Position    = LdapHelper.GetProp(r, "title"),
+                            Department  = LdapHelper.GetProp(r, "department"),
+                            Manager     = LdapHelper.GetCNFromDN(LdapHelper.GetProp(r, "manager")),
+                            DN          = LdapHelper.GetProp(r, "distinguishedName")
+                        }
+                    });
+                    found++;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Write($"Ошибка поиска подчинённых в {domain}: {ex.Message}", LogType.Error);
+            }
+        }
+
+        Logger.Write($"Подчинённых найдено и добавлено: {found}.", LogType.Summary);
     }
 
     private static string FormatOuPath(string dn) =>
