@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Version>1.0.$([System.DateTime]::Now.ToString("yyyy")).$([System.DateTime]::Now.ToString("MMdd"))</Version>
+    <FileVersion>1.0.$([System.DateTime]::Now.ToString("yyyy")).$([System.DateTime]::Now.ToString("MMdd"))</FileVersion>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
