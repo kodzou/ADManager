@@ -84,13 +84,39 @@ public static class LdapHelper
         return match.Success ? match.Groups[1].Value : dn;
     }
 
-    // Аналог Invoke-ADOperation (с авто-запросом прав)
+    // Аналог Invoke-ADOperation (с авто-запросом прав и кэшем учётных данных)
     public static bool InvokeADOperation(
         string domain,
         string dn,
         Action<DirectoryEntry> operation,
         IWin32Window owner)
     {
+        // Если есть кэшированные учётные данные — пробуем ими
+        var cached = CredentialCache.Get(domain);
+        if (cached != null)
+        {
+            try
+            {
+                using var entry = new DirectoryEntry(
+                    $"LDAP://{domain}/{dn}",
+                    cached.UserName, cached.Password,
+                    AuthenticationTypes.Secure);
+                operation(entry);
+                return true;
+            }
+            catch (Exception ex) when (IsAccessDenied(ex))
+            {
+                CredentialCache.Invalidate(domain);
+                // кэш устарел — продолжаем стандартным путём
+            }
+            catch (Exception ex)
+            {
+                Logger.Write($"Ошибка операции AD: {ex.Message}", LogType.Error);
+                return false;
+            }
+        }
+
+        // Стандартный путь: пробуем без повышенных прав
         try
         {
             using var entry = new DirectoryEntry($"LDAP://{domain}/{dn}");
@@ -111,10 +137,11 @@ public static class LdapHelper
                 var cred = credDlg.Credential!;
                 using var entry = new DirectoryEntry(
                     $"LDAP://{domain}/{dn}",
-                    cred.UserName,
-                    cred.Password,
+                    cred.UserName, cred.Password,
                     AuthenticationTypes.Secure);
                 operation(entry);
+                CredentialCache.Store(domain, cred);
+                Logger.Write("Учётные данные сохранены до конца текущего дня.", LogType.Info);
                 return true;
             }
             catch (Exception ex2)
