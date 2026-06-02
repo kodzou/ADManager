@@ -6,12 +6,12 @@ namespace ADManager.Dialogs;
 
 public partial class SetExpiryDialog : Form
 {
-    private string         _domain   = "";
-    private string         _dn       = "";
-    private RadioButton    _rdoNever   = null!;
-    private RadioButton    _rdoExpires = null!;
-    private DateTimePicker _dtp        = null!;
-    private IWin32Window?  _ownerWin;
+    private string        _domain     = "";
+    private string        _dn         = "";
+    private RadioButton   _rdoNever   = null!;
+    private RadioButton   _rdoExpires = null!;
+    private DateTimePicker _dtp       = null!;
+    private IWin32Window? _ownerWin;
 
     public SetExpiryDialog() { InitializeComponent(); }
 
@@ -28,6 +28,8 @@ public partial class SetExpiryDialog : Form
         var result     = searcher?.FindOne();
         long accExpRaw = result != null ? LdapHelper.GetPropLong(result, "accountExpires") : 0L;
         bool neverExp  = accExpRaw <= 0L || accExpRaw == long.MaxValue;
+
+        var expDT = neverExp ? null : LdapHelper.FileTimeToDateTime(accExpRaw);
 
         Text            = "Срок действия учётной записи";
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -79,23 +81,16 @@ public partial class SetExpiryDialog : Form
             Checked  = !neverExp
         };
 
+        // Один пикер с датой и временем: "5 июня 2026 в 18:00"
         _dtp = new DateTimePicker
         {
-            Location = new Point(112, 97),
-            Size     = new Size(330, 24),
-            Format   = DateTimePickerFormat.Long,
-            Enabled  = !neverExp
+            Location     = new Point(112, 97),
+            Size         = new Size(330, 24),
+            Format       = DateTimePickerFormat.Custom,
+            CustomFormat = "d MMMM yyyy 'в' HH:mm",
+            Value        = expDT ?? DateTime.Today,
+            Enabled      = !neverExp
         };
-
-        if (!neverExp)
-        {
-            var expDT  = LdapHelper.FileTimeToDateTime(accExpRaw);
-            _dtp.Value = expDT ?? DateTime.Today;
-        }
-        else
-        {
-            _dtp.Value = DateTime.Today;
-        }
 
         _rdoNever.CheckedChanged   += (_, _) => _dtp.Enabled = !_rdoNever.Checked;
         _rdoExpires.CheckedChanged += (_, _) => _dtp.Enabled =  _rdoExpires.Checked;
@@ -136,20 +131,32 @@ public partial class SetExpiryDialog : Form
 
     private void OnApply()
     {
-        long newExpiry = _rdoNever.Checked ? 0L : _dtp.Value.Date.ToFileTime();
+        long   newExpiry;
+        string logMsg;
+
+        if (_rdoNever.Checked)
+        {
+            newExpiry = 0L;
+            logMsg    = "Срок действия снят (не ограничен).";
+        }
+        else
+        {
+            // Секунды обнуляем — AD хранит с точностью 100 нс, пользователю достаточно минут
+            var dt    = new DateTime(_dtp.Value.Year, _dtp.Value.Month, _dtp.Value.Day,
+                                     _dtp.Value.Hour, _dtp.Value.Minute, 0, DateTimeKind.Local);
+            newExpiry = dt.ToFileTime();
+            logMsg    = $"Срок действия установлен: {dt:dd.MM.yyyy HH:mm}.";
+        }
 
         bool ok = LdapHelper.InvokeADOperation(_domain, _dn, entry =>
         {
-            entry.Properties["accountExpires"].Value = newExpiry;
+            LdapHelper.SetLargeInteger(entry, "accountExpires", newExpiry);
             entry.CommitChanges();
         }, _ownerWin);
 
         if (ok)
         {
-            string msg = _rdoNever.Checked
-                ? "Срок действия снят (не ограничен)."
-                : $"Срок действия установлен: {_dtp.Value.Date:dd.MM.yyyy}.";
-            Logger.Write(msg, LogType.OK);
+            Logger.Write(logMsg, LogType.OK);
             DialogResult = DialogResult.OK;
             Close();
         }

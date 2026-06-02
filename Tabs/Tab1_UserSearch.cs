@@ -266,7 +266,7 @@ public partial class Tab1_UserSearch : UserControl
 
         bool ok = LdapHelper.InvokeADOperation(domain, dn, entry =>
         {
-            entry.Properties["lockoutTime"].Value = DateTime.UtcNow.ToFileTimeUtc();
+            LdapHelper.SetLargeInteger(entry, "lockoutTime", DateTime.UtcNow.ToFileTimeUtc());
             entry.CommitChanges();
         }, _grid!.FindForm()!);
 

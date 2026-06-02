@@ -53,10 +53,11 @@ partial class SetExpiryDialog
         _rdoExpires.AutoSize = true;
 
         _dtp = new DateTimePicker();
-        _dtp.Location = new System.Drawing.Point(112, 97);
-        _dtp.Size     = new System.Drawing.Size(330, 24);
-        _dtp.Format   = DateTimePickerFormat.Long;
-        _dtp.Enabled  = false;
+        _dtp.Location     = new System.Drawing.Point(112, 97);
+        _dtp.Size         = new System.Drawing.Size(330, 24);
+        _dtp.Format       = DateTimePickerFormat.Custom;
+        _dtp.CustomFormat = "d MMMM yyyy 'в' HH:mm";
+        _dtp.Enabled      = false;
 
         var btnApply = new Button();
         btnApply.Text      = "Применить";

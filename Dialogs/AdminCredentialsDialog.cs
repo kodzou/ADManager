@@ -15,7 +15,18 @@ public partial class AdminCredentialsDialog : Form
 
     public AdminCredentialsDialog(string domain) : this()
     {
+        string netbios = domain.Split('.')[0];
         Text = $"Требуются права администратора — {domain}";
-        _btnOk.Click += (_, _) => Credential = new NetworkCredential(_txtUser.Text, _txtPwd.Text);
+        _txtUser.PlaceholderText = $@"{netbios}\username";
+
+        _btnOk.Click += (_, _) =>
+        {
+            string user = _txtUser.Text.Trim();
+            // Добавляем домен если пользователь ввёл просто логин без префикса
+            string fullUser = (user.Contains('\\') || user.Contains('@'))
+                ? user
+                : $@"{netbios}\{user}";
+            Credential = new NetworkCredential(fullUser, _txtPwd.Text);
+        };
     }
 }

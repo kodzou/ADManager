@@ -144,8 +144,9 @@ public class FindManagerDialog : Form
         _grid.Rows.Clear();
         _results.Clear();
 
+        string safe   = LdapHelper.EscapeLdapFilter(query);
         string filter = $"(&(objectClass=user)(!(objectClass=computer))" +
-                        $"(|(sn=*{query}*)(givenName=*{query}*)(displayName=*{query}*)))";
+                        $"(|(sn=*{safe}*)(givenName=*{safe}*)(displayName=*{safe}*)))";
 
         Logger.Write($"Поиск руководителя: «{query}»...", LogType.Info);
 

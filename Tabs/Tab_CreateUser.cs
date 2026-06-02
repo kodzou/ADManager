@@ -899,9 +899,11 @@ public partial class Tab_CreateUser : UserControl
             if (!string.IsNullOrEmpty(_managerDN))
                 user.Properties["manager"].Value = _managerDN;
 
+            // Включаем аккаунт до SetPassword: некоторые DC отказывают в смене пароля
+            // для отключённых объектов (userAccountControl & 2 = disabled при создании)
+            user.Properties["userAccountControl"].Value = 0x200; // NORMAL_ACCOUNT
             user.CommitChanges();
             user.Invoke("SetPassword", new object[] { password });
-            user.Properties["userAccountControl"].Value = 0x200; // NORMAL_ACCOUNT
             user.Properties["pwdLastSet"].Value = -1;
             user.CommitChanges();
         }, this);

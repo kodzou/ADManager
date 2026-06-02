@@ -178,6 +178,7 @@ public partial class ChangePasswordDialog : Form
         };
 
         // 5 кнопок-паролей
+        _genButtons = new Button[5];
         for (int i = 0; i < 5; i++)
         {
             var gb = new Button
@@ -320,12 +321,7 @@ public partial class ChangePasswordDialog : Form
         string pwd        = _txtNewPwd.Text;
         bool   mustChange = _chkMustChange.Checked;
 
-        bool ok = LdapHelper.InvokeADOperation(_domain, _userDN, entry =>
-        {
-            entry.Invoke("SetPassword", new object[] { pwd });
-            entry.Properties["pwdLastSet"].Value = mustChange ? 0 : -1;
-            entry.CommitChanges();
-        }, this);
+        bool ok = LdapHelper.InvokeSetPassword(_domain, _samAccountName, _userDN, pwd, mustChange, this);
 
         if (ok)
         {

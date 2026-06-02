@@ -210,9 +210,10 @@ public partial class Tab6_SearchByList : UserControl
             {
                 try
                 {
+                    string safeNorm = LdapHelper.EscapeLdapFilter(norm);
                     string filter = _chkActiveOnly?.Checked == true
-                        ? $"(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(displayName={norm}*))"
-                        : $"(&(objectClass=user)(displayName={norm}*))";
+                        ? $"(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(displayName={safeNorm}*))"
+                        : $"(&(objectClass=user)(displayName={safeNorm}*))";
 
                     var searcher = LdapHelper.CreateSearcher(domain, filter, ldapProps);
                     if (searcher == null) continue;

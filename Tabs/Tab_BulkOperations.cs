@@ -172,7 +172,7 @@ public partial class Tab_BulkOperations : UserControl
         bool hasUsers  = _users.Count > 0;
         bool hasFields = _chkPosition.Checked || _chkDepartment.Checked ||
                          _chkManager.Checked  || _chkOU.Checked;
-        bool active = hasUsers || hasFields;
+        bool active = hasUsers && hasFields;
         _btnRun.Enabled   = active;
         _btnRun.BackColor = active
             ? Color.FromArgb(50, 100, 200)
