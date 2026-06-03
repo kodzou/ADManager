@@ -16,7 +16,8 @@ partial class Tab2_Groups
         base.Dispose(disposing);
     }
 
-    private Button _btnSearch = null!;
+    private Button _btnSearch     = null!;
+    private Button _btnEditGroups = null!;
 
     private void InitializeComponent()
     {
@@ -40,6 +41,18 @@ partial class Tab2_Groups
         _btnSearch = UiFactory.MakeActionButton("Показать группы", 150);
         _btnSearch.Location = new Point(424, 24);
 
+        _btnEditGroups = new Button
+        {
+            Text      = "Редактировать группы",
+            Size      = new Size(170, 28),
+            Location  = new Point(582, 24),
+            BackColor = Color.FromArgb(50, 100, 200),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font      = new Font("Segoe UI", 9f, FontStyle.Bold)
+        };
+        _btnEditGroups.FlatAppearance.BorderSize = 0;
+
         _grid = UiFactory.MakeGrid();
         _grid.Location = new Point(5, 58);
         _grid.Size     = new System.Drawing.Size(1190, 617);
@@ -48,7 +61,7 @@ partial class Tab2_Groups
 
         Controls.AddRange(new Control[]
         {
-            lblSam, _txtSam, lblDomain, _cbDomain, _btnSearch, _grid
+            lblSam, _txtSam, lblDomain, _cbDomain, _btnSearch, _btnEditGroups, _grid
         });
 
         ResumeLayout(false);
