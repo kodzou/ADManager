@@ -144,7 +144,7 @@ public static class LdapHelper
             }
             catch (Exception ex)
             {
-                Logger.Write($"Ошибка операции AD: {ex.Message}", LogType.Error);
+                Logger.Write(FormatAdError("Ошибка операции AD (кэш)", ex), LogType.Error);
                 return false;
             }
         }
@@ -179,17 +179,35 @@ public static class LdapHelper
             }
             catch (Exception ex2)
             {
-                Logger.Write($"Ошибка с введёнными реквизитами: {ex2.Message}", LogType.Error);
+                Logger.Write(FormatAdError("Ошибка с введёнными реквизитами", ex2), LogType.Error);
                 return false;
             }
         }
         catch (Exception ex)
         {
-            string hresult = ex is COMException c && !ex.Message.Contains(c.ErrorCode.ToString("X"))
-                ? $" (0x{(uint)c.ErrorCode:X8})" : "";
-            Logger.Write($"Ошибка операции AD: {ex.Message}{hresult}", LogType.Error);
+            Logger.Write(FormatAdError("Ошибка операции AD", ex), LogType.Error);
             return false;
         }
+    }
+
+    // Форматирует ошибку AD с HRESULT и цепочкой вложенных исключений
+    public static string FormatAdError(string prefix, Exception ex)
+    {
+        var parts = new System.Text.StringBuilder();
+        parts.Append(prefix).Append(": ");
+
+        Exception? cur = ex;
+        int depth = 0;
+        while (cur != null && depth < 4)
+        {
+            if (depth > 0) parts.Append(" → ");
+            parts.Append(cur.Message);
+            if (cur is COMException com)
+                parts.Append($" [0x{(uint)com.ErrorCode:X8}]");
+            cur = cur.InnerException;
+            depth++;
+        }
+        return parts.ToString();
     }
 
     // Смена пароля через WinNT-провайдер — работает без LDAPS.
@@ -207,7 +225,7 @@ public static class LdapHelper
             catch (Exception ex) when (IsAccessDenied(ex)) { CredentialCache.Invalidate(domain); }
             catch (Exception ex)
             {
-                Logger.Write($"Ошибка смены пароля: {ex.Message}", LogType.Error);
+                Logger.Write(FormatAdError("Ошибка задания пароля (кэш)", ex), LogType.Error);
                 return false;
             }
         }

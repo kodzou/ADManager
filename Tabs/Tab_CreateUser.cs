@@ -43,6 +43,11 @@ public partial class Tab_CreateUser : UserControl
     private ComboBox _cbTemplates     = null!;
     private TextBox  _txtTemplateName = null!;
 
+    // ── Group presets ──────────────────────────────────────────
+    private ComboBox _cbGroupPresets     = null!;
+    private ListBox  _lstGroupPreview    = null!;
+    private Label    _lblGroupDomainHint = null!;
+
     // ── State ─────────────────────────────────────────────────
     private string _selectedOUDN     = "";
     private string _selectedOUDomain = "";
@@ -362,6 +367,49 @@ public partial class Tab_CreateUser : UserControl
 
         _ = y;
 
+        // ── Набор групп (правая зона, фиксированная позиция) ──
+        // Комбо: y=36 — на одном уровне с «Выбранное OU»
+        // Подсказка: y=64 (под комбо)
+        // Список: y=84, h=336 — нижний край 420 = нижний край строки «Руководитель»
+        const int GPX = 640;
+        const int GPW = 270;
+
+        var lblGroupSets = new Label
+        {
+            Text      = "Список групп:",
+            Location  = new Point(GPX, 20),
+            AutoSize  = true,
+            ForeColor = Color.FromArgb(90, 100, 120),
+            Font      = new Font("Segoe UI", 8.5f)
+        };
+
+        _cbGroupPresets = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Location      = new Point(GPX, 36),
+            Size          = new Size(GPW, 24),
+            Font          = new Font("Segoe UI", 9f)
+        };
+
+        _lblGroupDomainHint = new Label
+        {
+            Text      = "",
+            Location  = new Point(GPX, 64),
+            Size      = new Size(GPW, 16),
+            ForeColor = Color.FromArgb(90, 100, 120),
+            Font      = new Font("Segoe UI", 8f)
+        };
+
+        _lstGroupPreview = new ListBox
+        {
+            Location    = new Point(GPX, 84),
+            Size        = new Size(GPW, 336),
+            Font        = new Font("Segoe UI", 8.5f),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+
+        p.Controls.AddRange(new Control[] { lblGroupSets, _cbGroupPresets, _lblGroupDomainHint, _lstGroupPreview });
+
         btnGenAll.Click  += (_, _) => GenerateLoginAndPassword();
         btnRegen.Click   += (_, _) => { _txtPassword.Text = PasswordGenerator.GenerateMemorable(12); };
         btnFindMgr.Click += (_, _) => FindManager();
@@ -455,7 +503,22 @@ public partial class Tab_CreateUser : UserControl
             string domain = _cbOuDomain.SelectedItem?.ToString() ?? "";
             LoadOuTree(domain);
             _txtOrg.Text = _orgMap.TryGetValue(domain, out string? org) ? org : "";
+            RefreshGroupPresetsCombo();
         };
+
+        _cbGroupPresets.SelectedIndexChanged += (_, _) =>
+        {
+            _lstGroupPreview.Items.Clear();
+            int idx = _cbGroupPresets.SelectedIndex;
+            if (idx <= 0) return;
+            string domain  = _cbOuDomain.SelectedItem?.ToString() ?? "";
+            var    presets = GroupListStorage.ForDomain(domain).ToList();
+            if (idx - 1 >= presets.Count) return;
+            foreach (var g in presets[idx - 1].Groups)
+                _lstGroupPreview.Items.Add(g.CN);
+        };
+
+        VisibleChanged += (_, _) => { if (Visible) RefreshGroupPresetsCombo(); };
 
         _txtOuSearch.KeyDown += (_, e) =>
         {
@@ -511,6 +574,22 @@ public partial class Tab_CreateUser : UserControl
 
         // Trigger initial load
         _cbOuDomain.SelectedIndex = 0;
+    }
+
+    public void RefreshGroupPresets() => RefreshGroupPresetsCombo();
+
+    private void RefreshGroupPresetsCombo()
+    {
+        string domain = _cbOuDomain.SelectedItem?.ToString() ?? "";
+        _cbGroupPresets.Items.Clear();
+        _cbGroupPresets.Items.Add("— Выбрать список групп —");
+        foreach (var p in GroupListStorage.ForDomain(domain))
+            _cbGroupPresets.Items.Add(p.Name);
+        _cbGroupPresets.SelectedIndex = 0;
+        _lstGroupPreview.Items.Clear();
+        _lblGroupDomainHint.Text = string.IsNullOrEmpty(domain)
+            ? ""
+            : $"Списки групп для домена {domain}";
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -869,17 +948,49 @@ public partial class Tab_CreateUser : UserControl
         string givenName = parts.Length > 1 ? parts[1] : "";
         string displayName = $"{surname} {givenName}".Trim();
 
+        string userDN = $"CN={displayName},{ouDN}";
         Logger.Write($"Создание пользователя {login} в {domain} / {FormatOuPath(ouDN)}...", LogType.Info);
+        Logger.Write($"  DN: {userDN}", LogType.Info);
 
-        bool ok = LdapHelper.InvokeADOperation(domain, ouDN, entry =>
+        // ── Шаг 1/3: создать объект (отключён, без пароля) ────────────────────
+        // userAccountControl=0x202: NORMAL_ACCOUNT | ACCOUNTDISABLE
+        // Нельзя создавать включённым (0x200) без пароля — DC отвергает (LDAP 53)
+        Logger.Write("Шаг 1/3: создание объекта пользователя (отключён)...", LogType.Info);
+        bool step1 = LdapHelper.InvokeADOperation(domain, ouDN, entry =>
         {
             var user = entry.Children.Add($"CN={displayName}", "user");
             user.Properties["sAMAccountName"].Value    = login;
-            user.Properties["userPrincipalName"].Value = $"{login}@{domain}";
+            user.Properties["userPrincipalName"].Value = $"{login}@{domain.Replace(".local", ".ru")}";
             user.Properties["displayName"].Value       = displayName;
             user.Properties["givenName"].Value         = givenName;
             user.Properties["sn"].Value                = surname;
+            user.Properties["userAccountControl"].Value = 0x202; // NORMAL_ACCOUNT | ACCOUNTDISABLE
+            user.CommitChanges();
+            Logger.Write($"  CommitChanges (шаг 1) выполнен для {login}.", LogType.Info);
+        }, this);
 
+        if (!step1)
+        {
+            Logger.Write("Шаг 1/3: не удалось создать объект. Операция прервана.", LogType.Error);
+            return;
+        }
+        Logger.Write("Шаг 1/3: объект создан (отключён).", LogType.OK);
+
+        // ── Шаг 2/3: задать пароль (PrincipalContext, Negotiate+Sealing+Signing) ──
+        Logger.Write("Шаг 2/3: установка пароля...", LogType.Info);
+        bool step2 = LdapHelper.InvokeSetPassword(domain, login, userDN, password, mustChange: false, this);
+
+        if (!step2)
+        {
+            Logger.Write($"Шаг 2/3: не удалось задать пароль. УЗ {login} создана, но отключена.", LogType.Warning);
+            return;
+        }
+        Logger.Write("Шаг 2/3: пароль задан.", LogType.OK);
+
+        // ── Шаг 3/3: атрибуты + включить аккаунт ─────────────────────────────
+        Logger.Write("Шаг 3/3: заполнение атрибутов и включение УЗ...", LogType.Info);
+        bool step3 = LdapHelper.InvokeADOperation(domain, userDN, user =>
+        {
             if (!string.IsNullOrEmpty(_txtEmail.Text))
                 user.Properties["mail"].Value = _txtEmail.Text;
             if (!string.IsNullOrEmpty(_txtDescription.Text))
@@ -898,18 +1009,56 @@ public partial class Tab_CreateUser : UserControl
                 user.Properties["company"].Value = _txtOrg.Text;
             if (!string.IsNullOrEmpty(_managerDN))
                 user.Properties["manager"].Value = _managerDN;
-
-            // Включаем аккаунт до SetPassword: некоторые DC отказывают в смене пароля
-            // для отключённых объектов (userAccountControl & 2 = disabled при создании)
-            user.Properties["userAccountControl"].Value = 0x200; // NORMAL_ACCOUNT
+            user.Properties["userAccountControl"].Value = 0x200; // NORMAL_ACCOUNT (включён)
             user.CommitChanges();
-            user.Invoke("SetPassword", new object[] { password });
-            user.Properties["pwdLastSet"].Value = -1;
-            user.CommitChanges();
+            Logger.Write($"  CommitChanges (шаг 3) выполнен.", LogType.Info);
         }, this);
 
-        if (ok)
+        if (step3)
             Logger.Write($"Пользователь {displayName} ({login}) успешно создан в {domain}.", LogType.OK);
+        else
+            Logger.Write($"УЗ {login} создана и включена, но часть атрибутов не сохранена.", LogType.Warning);
+
+        AddToGroupPreset(domain, displayName, ouDN);
+    }
+
+    private void AddToGroupPreset(string domain, string displayName, string ouDN)
+    {
+        int gIdx = _cbGroupPresets.SelectedIndex;
+        if (gIdx <= 0) return;
+
+        var presets = GroupListStorage.ForDomain(domain).ToList();
+        if (gIdx - 1 >= presets.Count) return;
+
+        var    preset  = presets[gIdx - 1];
+        string userDN  = $"CN={displayName},{ouDN}";
+        var    cred    = CredentialCache.Get(domain);
+        int    gOk = 0, gFail = 0;
+
+        foreach (var grp in preset.Groups)
+        {
+            try
+            {
+                using var groupEntry = cred != null
+                    ? new DirectoryEntry($"LDAP://{domain}/{grp.DN}", cred.UserName, cred.Password,
+                                         AuthenticationTypes.Secure)
+                    : new DirectoryEntry($"LDAP://{domain}/{grp.DN}");
+                groupEntry.Properties["member"].Add(userDN);
+                groupEntry.CommitChanges();
+                gOk++;
+            }
+            catch (Exception ex)
+            {
+                Logger.Write($"Не удалось добавить в группу «{grp.CN}»: {ex.Message}", LogType.Warning);
+                gFail++;
+            }
+        }
+
+        if (gOk > 0 || gFail > 0)
+        {
+            string failPart = gFail > 0 ? $", {gFail} с ошибками" : "";
+            Logger.Write($"Добавление в группы списка «{preset.Name}»: {gOk} успешно{failPart}.", LogType.Info);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════

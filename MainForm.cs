@@ -24,6 +24,7 @@ public partial class MainForm : Form
     public MainForm()
     {
         InitializeComponent();
+        GroupListStorage.Load();
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? SystemIcons.Application;
         _tab1.Tab2             = _tab2;
         _tab1.TabBulk          = _tabBulk;
